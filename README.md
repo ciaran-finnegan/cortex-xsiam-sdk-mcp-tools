@@ -1,26 +1,18 @@
 # Cortex XSIAM SDK MCP Tools
 
-[![Demisto SDK](https://img.shields.io/badge/demisto--sdk-1.38+-blue)](https://github.com/demisto/demisto-sdk)
-[![Python](https://img.shields.io/badge/python-3.10+-green)](https://python.org)
-[![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha-orange)](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools)
-
-> ⚠️ **Alpha Release**: This MCP server is in early development and not suitable for production use. APIs and tool schemas may change without notice.
+**Alpha** - Not suitable for production use. APIs and tool schemas may change.
 
 Model Context Protocol (MCP) server providing demisto-sdk commands as tools for LLM coding assistants.
 
 ## Overview
 
-This MCP server wraps [demisto-sdk](https://github.com/demisto/demisto-sdk) commands, enabling LLM assistants (Cursor, Cline, Claude Code) to directly invoke SDK operations for XSIAM/XSOAR content development.
+Wraps [demisto-sdk](https://github.com/demisto/demisto-sdk) commands, enabling LLM assistants (Cursor, Cline, Claude Code) to invoke SDK operations for XSIAM/XSOAR content development.
 
 ## Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools.git
 cd cortex-xsiam-sdk-mcp-tools
-
-# Install dependencies
 pip install -e .
 ```
 
@@ -28,7 +20,7 @@ pip install -e .
 
 ### Cursor
 
-Add to your `.cursor/mcp.json`:
+Add to `.cursor/mcp.json`:
 
 ```json
 {
@@ -44,7 +36,7 @@ Add to your `.cursor/mcp.json`:
 
 ### Cline
 
-Add to your Cline MCP settings:
+Add to Cline MCP settings:
 
 ```json
 {
@@ -55,13 +47,13 @@ Add to your Cline MCP settings:
 }
 ```
 
-## Available Tools
+## Tools
 
 | Tool | Description |
 |------|-------------|
-| `init_pack` | Create new content pack structure |
-| `init_integration` | Scaffold new integration |
-| `init_script` | Scaffold new script |
+| `init_pack` | Create content pack structure |
+| `init_integration` | Scaffold integration |
+| `init_script` | Scaffold script |
 | `format_content` | Standardise YAML/Python formatting |
 | `validate_content` | Check content validity |
 | `lint_content` | Run code quality checks |
@@ -88,32 +80,22 @@ Add to your Cline MCP settings:
 ## Development
 
 ```bash
-# Install dev dependencies
 pip install -e ".[dev]"
-
-# Run tests
 pytest
-
-# Type checking
 mypy mcp_demisto_sdk
 ```
 
 ## Related Repositories
 
-- [demisto-sdk](https://github.com/demisto/demisto-sdk) - Official Palo Alto Networks SDK
-- [demisto/content](https://github.com/demisto/content) - Official XSIAM/XSOAR content library
-- [cortex-xsiam-content-development-template](https://github.com/ciaran-finnegan/cortex-xsiam-content-development-template) - Development template with LLM configurations
-- [MCP Specification](https://modelcontextprotocol.io/) - Model Context Protocol documentation
+- [demisto-sdk](https://github.com/demisto/demisto-sdk) - Official SDK
+- [demisto/content](https://github.com/demisto/content) - Official content library
+- [cortex-xsiam-content-development-template](https://github.com/ciaran-finnegan/cortex-xsiam-content-development-template) - Development template
+- [MCP Specification](https://modelcontextprotocol.io/)
 
 ## Licence
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Contributing
-
-Contributions welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting PRs.
+MIT - See [LICENSE](LICENSE).
 
 ---
 
-**Disclaimer**: This is a community project and is not officially supported by Palo Alto Networks.
-
+Community project, not officially supported by Palo Alto Networks.
