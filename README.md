@@ -6,11 +6,10 @@ An MCP server that exposes common `demisto-sdk` operations as tools, so an LLM (
 
 ## Why this exists
 
-- **Faster scaffolding**: create packs, integrations, and scripts in seconds
-- **Higher quality**: run format/validate/lint as part of the conversation
-- **Safer iteration**: favour local SDK workflows, and keep remote operations explicit
+- **Faster scaffolding**: create packs, integrations, and scripts quickly using an LLM coding assistant
+- **Higher quality**: run format/validate/lint using natural language
 
-## Quickstart (local-first)
+## Quickstart
 
 1) Install `demisto-sdk` (separate environment)  
 2) Install this MCP server (venv)  
@@ -18,28 +17,33 @@ An MCP server that exposes common `demisto-sdk` operations as tools, so an LLM (
 4) Ask your assistant to scaffold and validate content using the tools
 
 See:
-- Credentials: `docs/CREDENTIALS.md`
-- MCP clients: `docs/MCP_CLIENTS.md`
 
-## Example: typical XSIAM developer flows (LLM + MCP)
+- Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
+- MCP clients: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
+
+## Example prompts: typical XSIAM developer flows (LLM + MCP)
 
 These are example prompts you can paste into your LLM chat after the MCP server is configured.
 
-### Create a new pack and scaffold an integration
+### Scaffold a new pack and integration (local)
 
-“Create a pack called `MyCompanyXSIAM` under `Packs/`, then scaffold an integration called `MyCompanyXSIAM` using the HelloWorld template. After that, run format + validate on the pack.”
+“Create a new pack called `Acme_ServiceNow` under `Packs/`. Scaffold an integration called `AcmeServiceNow` using the HelloWorld template. Then run `format_content`, `validate_content`, and `lint_content` on the pack.”
 
-### Validate and lint a pack before PR
+### Pre-PR checks for an existing pack (local)
 
-“Run `validate_content` and `lint_content` on `Packs/MyCompanyXSIAM`. Summarise any failures and propose fixes.”
+“Run `validate_content` and `lint_content` on `Packs/Acme_ServiceNow`. Summarise errors with file paths and propose minimal fixes.”
 
-### Generate documentation for an integration
+### Generate integration README docs (local)
 
-“Generate README documentation for `Packs/MyCompanyXSIAM/Integrations/MyCompanyXSIAM/MyCompanyXSIAM.yml` and write it next to the integration.”
+“Run `generate_docs` for `Packs/Acme_ServiceNow/Integrations/AcmeServiceNow/AcmeServiceNow.yml` and write the output README next to it.”
 
-### Read-only: discover and download one custom item from XSIAM
+### Read-only: find what exists in the tenant (remote)
 
-“Use `list_files` to list available custom content to download, then download a single small item into a temp pack for inspection (do not upload anything).”
+“Use `list_files` and show me all available content items related to **ServiceNow** (scripts, playbooks, mappers, classifiers, etc.).”
+
+### Read-only: download a small, targeted subset (remote → local)
+
+“From `list_files`, pick the **top 3 ServiceNow-related** items and use `download_content` to download only those into a temporary pack called `Remote_Inspect_ServiceNow` for review. Do not upload anything.”
 
 ## Prerequisites
 
@@ -90,7 +94,7 @@ pip install -e .
 
 ### 3. Configure Credentials
 
-See `docs/CREDENTIALS.md` for secure credential storage options including:
+See [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) for secure credential storage options including:
 
 - 1Password CLI (recommended)
 - macOS Keychain
@@ -100,7 +104,7 @@ See `docs/CREDENTIALS.md` for secure credential storage options including:
 
 ### 4. Configure Your MCP Client
 
-See `docs/MCP_CLIENTS.md` for configuration instructions for:
+See [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md) for configuration instructions for:
 
 - Cursor
 - Cline
@@ -112,6 +116,55 @@ See `docs/MCP_CLIENTS.md` for configuration instructions for:
 
 - **Do not store credentials in git**. Prefer 1Password/Keychain/Secrets Manager and inject via environment variables.
 - Treat **remote write operations** (`upload_content`, `run_command`, `run_playbook`) as production-impacting unless you are targeting a dedicated dev tenant.
+
+## Sample outputs
+
+These are representative examples (truncated) of what you should see when the MCP tools run successfully.
+
+### `list_files` (read-only)
+
+This tool wraps `demisto-sdk download --list-files` and returns an inventory of custom content items available to download:
+
+```text
+Successfully parsed 617 custom content objects.
+List of custom content files available to download (617):
+
+Content Name                                      Content Type
+BuildSimilarAlertSearchQuery                      script
+CleanUpJiraAlerts                                 script
+RLS - DSPM Correlation Alerts v1                  playbook
+DSPM MS Forms Classifier                          classifier
+DSPM Backlog Mapper                               mapper
+Prisma Cloud Instance Name                        incidentfield
+...
+```
+
+### `download_content` (single item)
+
+Downloading a single item into a temporary pack for inspection (no upload):
+
+```text
+Fetching custom content bundle from server...
+Successfully parsed 617 custom content objects.
+Filtering process completed, 1/617 items remain.
+Successful downloads: 1
+Saved:
+  Packs/RemoteSmokeTest/Scripts/JBTest/JBTest.yml
+  Packs/RemoteSmokeTest/Scripts/JBTest/JBTest.py
+  Packs/RemoteSmokeTest/Scripts/JBTest/README.md
+```
+
+### `validate_content`
+
+Typical validation output (example):
+
+```text
+Running validation on: Packs/MyCompanyXSIAM
+Validation finished: 0 errors, 2 warnings
+- Warnings:
+  - Some file(s) are missing optional documentation
+  - pack_metadata.json could include more metadata (optional)
+```
 
 ## Tools
 
