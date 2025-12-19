@@ -1,12 +1,45 @@
 # Cortex XSIAM SDK MCP Tools
 
-**Alpha** - Not suitable for production use. APIs and tool schemas may change.
+**Alpha** — APIs and tool schemas may change. Not suitable for production use.
 
-Model Context Protocol (MCP) server providing demisto-sdk commands as tools for LLM coding assistants.
+An MCP server that exposes common `demisto-sdk` operations as tools, so an LLM (Cursor, Claude Code, Amazon Q, Codex CLI, etc.) can assist with Cortex XSIAM/XSOAR content development.
 
-## Overview
+## Why this exists
 
-Wraps [demisto-sdk](https://github.com/demisto/demisto-sdk) commands, enabling LLM assistants to invoke SDK operations for XSIAM/XSOAR content development.
+- **Faster scaffolding**: create packs, integrations, and scripts in seconds
+- **Higher quality**: run format/validate/lint as part of the conversation
+- **Safer iteration**: favour local SDK workflows, and keep remote operations explicit
+
+## Quickstart (local-first)
+
+1) Install `demisto-sdk` (separate environment)  
+2) Install this MCP server (venv)  
+3) Configure credentials + your MCP client  
+4) Ask your assistant to scaffold and validate content using the tools
+
+See:
+- Credentials: `docs/CREDENTIALS.md`
+- MCP clients: `docs/MCP_CLIENTS.md`
+
+## Example: typical XSIAM developer flows (LLM + MCP)
+
+These are example prompts you can paste into your LLM chat after the MCP server is configured.
+
+### Create a new pack and scaffold an integration
+
+“Create a pack called `MyCompanyXSIAM` under `Packs/`, then scaffold an integration called `MyCompanyXSIAM` using the HelloWorld template. After that, run format + validate on the pack.”
+
+### Validate and lint a pack before PR
+
+“Run `validate_content` and `lint_content` on `Packs/MyCompanyXSIAM`. Summarise any failures and propose fixes.”
+
+### Generate documentation for an integration
+
+“Generate README documentation for `Packs/MyCompanyXSIAM/Integrations/MyCompanyXSIAM/MyCompanyXSIAM.yml` and write it next to the integration.”
+
+### Read-only: discover and download one custom item from XSIAM
+
+“Use `list_files` to list available custom content to download, then download a single small item into a temp pack for inspection (do not upload anything).”
 
 ## Prerequisites
 
@@ -57,7 +90,7 @@ pip install -e .
 
 ### 3. Configure Credentials
 
-See [docs/CREDENTIALS.md](docs/CREDENTIALS.md) for secure credential storage options including:
+See `docs/CREDENTIALS.md` for secure credential storage options including:
 
 - 1Password CLI (recommended)
 - macOS Keychain
@@ -67,13 +100,18 @@ See [docs/CREDENTIALS.md](docs/CREDENTIALS.md) for secure credential storage opt
 
 ### 4. Configure Your MCP Client
 
-See [docs/MCP_CLIENTS.md](docs/MCP_CLIENTS.md) for configuration instructions for:
+See `docs/MCP_CLIENTS.md` for configuration instructions for:
 
 - Cursor
 - Cline
 - Claude Code
 - Amazon Q Developer
 - OpenAI Codex CLI
+
+## Security notes
+
+- **Do not store credentials in git**. Prefer 1Password/Keychain/Secrets Manager and inject via environment variables.
+- Treat **remote write operations** (`upload_content`, `run_command`, `run_playbook`) as production-impacting unless you are targeting a dedicated dev tenant.
 
 ## Tools
 
