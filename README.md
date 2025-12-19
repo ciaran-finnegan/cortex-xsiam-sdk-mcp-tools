@@ -24,9 +24,9 @@ See:
 - Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
 - MCP clients: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
 
-## Example prompts (recipes)
+## Example prompt
 
-These are ready-to-paste prompts. Each recipe declares **where it runs** and whether it is **read-only** or **remote write**.
+These are sample prompts
 
 | Recipe | Runs where | Tools involved | Prompt |
 |---|---|---|---|
@@ -100,16 +100,6 @@ See [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md) for configuration instructions 
 - Claude Code
 - Amazon Q Developer
 - OpenAI Codex CLI
-
-## Security notes
-
-- **Do not store credentials in git**. See [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) for guidance; prefer an OS keychain or a secrets manager and inject credentials via environment variables.
-- Treat **remote write operations** as production-impacting unless you are targeting a dedicated dev tenant.
-
-## CI & security scanning
-
-- **CI**: runs `ruff` and `pytest` on PRs and main.
-- **CodeQL**: performs static analysis security scanning on PRs and on a schedule.
 
 ## Sample outputs
 
