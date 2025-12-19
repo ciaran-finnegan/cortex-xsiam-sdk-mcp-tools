@@ -21,17 +21,6 @@ Expose common `demisto-sdk` operations as MCP tools so an LLM can assist with Co
 - Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
 - MCP client configuration: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
 - XQL syntax reference: [`docs/XQL_REFERENCE.md`](docs/XQL_REFERENCE.md)
-- Demo/screenshots: [`docs/DEMO.md`](docs/DEMO.md)
-
-<!-- markdownlint-disable MD033 -->
-<details>
-<summary>Screenshot: tool discovery in Claude Code (/mcp)</summary>
-
-> Add the screenshot at `docs/assets/claude-code-mcp-tools.png` for this to render.
-
-![Claude Code showing demisto-sdk MCP tools](docs/assets/claude-code-mcp-tools.png)
-</details>
-<!-- markdownlint-enable MD033 -->
 
 ## Why this exists
 
@@ -46,11 +35,7 @@ Expose common `demisto-sdk` operations as MCP tools so an LLM can assist with Co
 3) Configure credentials + your MCP client  
 4) Ask your assistant to scaffold and validate content using the tools
 
-See:
-
-- Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
-- MCP clients: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
-- Demo/screenshots: [`docs/DEMO.md`](docs/DEMO.md)
+See [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) and [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md) for setup details.
 
 ## Common tasks (copy/paste prompts)
 
