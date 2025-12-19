@@ -96,7 +96,6 @@ pip install -e .
 
 See [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) for secure credential storage options including:
 
-- 1Password CLI (recommended)
 - macOS Keychain
 - Windows Credential Manager
 - AWS Secrets Manager
@@ -114,7 +113,7 @@ See [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md) for configuration instructions 
 
 ## Security notes
 
-- **Do not store credentials in git**. Prefer 1Password/Keychain/Secrets Manager and inject via environment variables.
+- **Do not store credentials in git**. See [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) for guidance; prefer an OS keychain or a secrets manager and inject credentials via environment variables.
 - Treat **remote write operations** (`upload_content`, `run_command`, `run_playbook`) as production-impacting unless you are targeting a dedicated dev tenant.
 
 ## Sample outputs
