@@ -7,6 +7,14 @@
 
 An MCP server that exposes common `demisto-sdk` operations as tools, so an LLM (Cursor, Claude Code, Amazon Q, Codex CLI, etc.) can assist with Cortex XSIAM/XSOAR content development.
 
+## Quick demo
+
+Tool discovery in Claude Code (via `/mcp`):
+
+![Claude Code showing demisto-sdk MCP tools](docs/assets/claude-code-mcp-tools.png)
+
+More screenshots: [`docs/DEMO.md`](docs/DEMO.md)
+
 ## Why this exists
 
 - **Faster scaffolding**: create packs, integrations, and scripts quickly using an LLM coding assistant
@@ -23,6 +31,7 @@ See:
 
 - Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
 - MCP clients: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
+- Demo/screenshots: [`docs/DEMO.md`](docs/DEMO.md)
 
 ## Example prompt
 
