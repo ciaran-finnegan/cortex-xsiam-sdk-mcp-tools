@@ -209,6 +209,20 @@ TOOLS = [
         }
     ),
     Tool(
+        name="list_files",
+        description="List all custom content items available to download (demisto-sdk download --list-files)",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "output_path": {
+                    "type": "string",
+                    "description": "Optional output path (demisto-sdk -o). Listing does not write content.",
+                },
+                "insecure": {"type": "boolean", "description": "Skip certificate validation."},
+            },
+        },
+    ),
+    Tool(
         name="find_dependencies",
         description="Analyse and list pack dependencies",
         inputSchema={
@@ -355,6 +369,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         "generate_docs": handle_generate_docs,
         "upload_content": handle_upload_content,
         "download_content": handle_download_content,
+        "list_files": handle_list_files,
         "find_dependencies": handle_find_dependencies,
         "update_release_notes": handle_update_release_notes,
         "zip_packs": handle_zip_packs,
@@ -448,6 +463,16 @@ async def handle_download_content(args: dict[str, Any]) -> dict[str, Any]:
         cmd.extend(["-i", input_path])
     if args.get("all_content"):
         cmd.append("-a")
+    return run_sdk_command(cmd)
+
+
+async def handle_list_files(args: dict[str, Any]) -> dict[str, Any]:
+    """Handle list_files command (read-only)."""
+    cmd = ["download", "-lf"]
+    if output_path := args.get("output_path"):
+        cmd.extend(["-o", output_path])
+    if args.get("insecure"):
+        cmd.append("--insecure")
     return run_sdk_command(cmd)
 
 

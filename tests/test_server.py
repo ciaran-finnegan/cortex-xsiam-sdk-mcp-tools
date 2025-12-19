@@ -29,7 +29,7 @@ class TestServer:
 
     def test_tools_defined(self) -> None:
         """Test tools are defined."""
-        assert len(TOOLS) >= 19
+        assert len(TOOLS) >= 20
 
 
 class TestRunSdkCommand:

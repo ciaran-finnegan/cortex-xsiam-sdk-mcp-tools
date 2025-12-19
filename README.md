@@ -91,6 +91,7 @@ See [docs/MCP_CLIENTS.md](docs/MCP_CLIENTS.md) for configuration instructions fo
 | `generate_outputs` | Generate context paths from JSON |
 | `upload_content` | Deploy to XSIAM/XSOAR |
 | `download_content` | Sync content from platform |
+| `list_files` | List custom content items available to download (read-only) |
 | `run_command` | Execute commands remotely |
 | `run_playbook` | Run playbooks remotely |
 | `find_dependencies` | Analyse pack dependencies |
