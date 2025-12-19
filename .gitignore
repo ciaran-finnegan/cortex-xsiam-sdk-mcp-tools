@@ -55,3 +55,6 @@ pip-log.txt
 .env.local
 *.local.json
 
+# Scratch / temp
+_tmp/
+

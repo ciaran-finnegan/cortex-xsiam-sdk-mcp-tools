@@ -1,8 +1,17 @@
 # MCP Client Configuration
 
+<!-- markdownlint-disable MD012 -->
+
 Configure your LLM coding assistant to use the demisto-sdk MCP server.
 
 All examples use the virtual environment Python interpreter. Replace `/path/to/cortex-xsiam-sdk-mcp-tools` with your actual installation path.
+
+## Notes on environment and demisto-sdk
+
+- **Credentials**: The MCP server expects `DEMISTO_BASE_URL`, `DEMISTO_API_KEY`, and `XSIAM_AUTH_ID` to be available in its environment. See `docs/CREDENTIALS.md`.
+- **demisto-sdk binary**: If you installed `demisto-sdk` in a non-default location (recommended), set:
+  - `DEMISTO_SDK_BIN=/absolute/path/to/demisto-sdk`
+- **Content repo layout**: `demisto-sdk` expects a `Packs/` directory. If your working directory is not a content repo, this MCP server will create and use `_tmp/demisto-sdk-content/Packs` automatically.
 
 ## Cursor
 
@@ -22,6 +31,26 @@ See [Cursor MCP documentation](https://docs.cursor.com/context/model-context-pro
 ```
 
 Restart Cursor after updating the configuration.
+
+### Cursor: ensure environment variables are available
+
+If Cursor does not inherit your shell environment (common), run the MCP server via `zsh -lc` and export variables at process start.
+
+This pattern works well with 1Password CLI (no secrets stored in JSON; values are resolved at runtime):
+
+```json
+{
+  "mcpServers": {
+    "demisto-sdk": {
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "export DEMISTO_BASE_URL=\"$(op read 'op://YourVault/XSIAM API/url')\"; export DEMISTO_API_KEY=\"$(op read 'op://YourVault/XSIAM API/credential')\"; export XSIAM_AUTH_ID=\"$(op read 'op://YourVault/XSIAM API/auth_id')\"; export DEMISTO_SDK_BIN=\"/absolute/path/to/demisto-sdk\"; exec /path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python -m mcp_demisto_sdk"
+      ]
+    }
+  }
+}
+```
 
 ## Cline
 
@@ -83,11 +112,8 @@ See [Codex MCP documentation](https://developers.openai.com/codex/mcp/).
 command = "/path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python"
 args = ["-m", "mcp_demisto_sdk"]
 ```
-
 ## Verifying the Configuration
-
 After configuring your client, verify the MCP server is working:
-
 1. Restart your IDE/client
 2. Check the MCP server status (client-specific)
 3. Try invoking a tool, e.g., ask the assistant to "list demisto-sdk tools"
@@ -114,4 +140,3 @@ demisto-sdk --version
 ### Environment variables not set
 
 Verify credentials are available to the MCP server process. Some clients may not inherit shell environment variables — check your client's documentation for passing environment variables to MCP servers.
-

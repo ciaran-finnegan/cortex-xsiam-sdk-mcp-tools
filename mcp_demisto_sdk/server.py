@@ -9,8 +9,10 @@ for XSIAM/XSOAR content development.
 
 import asyncio
 import json
+import os
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 
 # Note: mcp package import - adjust based on actual MCP SDK implementation
@@ -26,14 +28,48 @@ except ImportError:
 server = Server("demisto-sdk")
 
 
+def _resolve_demisto_sdk_content_root(explicit_cwd: str | None) -> Path:
+    """
+    demisto-sdk expects to run within a 'content' repo layout (at minimum, a Packs/ dir).
+    When the current working directory isn't such a repo, we use a safe temp content root.
+    """
+    # 1) Honour explicit cwd if it already looks like a content repo.
+    if explicit_cwd:
+        p = Path(explicit_cwd).expanduser().resolve()
+        if (p / "Packs").exists():
+            return p
+
+    # 2) Honour DEMISTO_SDK_CONTENT_PATH if set.
+    if content_path := os.getenv("DEMISTO_SDK_CONTENT_PATH"):
+        p = Path(content_path).expanduser().resolve()
+        (p / "Packs").mkdir(parents=True, exist_ok=True)
+        return p
+
+    # 3) If current cwd is a content repo, use it.
+    cwd = Path.cwd()
+    if (cwd / "Packs").exists():
+        return cwd
+
+    # 4) Fallback: create a minimal content root under _tmp.
+    fallback = cwd / "_tmp" / "demisto-sdk-content"
+    (fallback / "Packs").mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
 def run_sdk_command(args: list[str], cwd: str | None = None) -> dict[str, Any]:
     """Execute a demisto-sdk command and return results."""
     try:
+        content_root = _resolve_demisto_sdk_content_root(cwd)
+        env = os.environ.copy()
+        env.setdefault("DEMISTO_SDK_CONTENT_PATH", str(content_root))
+        sdk_bin = env.get("DEMISTO_SDK_BIN", "demisto-sdk")
+
         result = subprocess.run(
-            ["demisto-sdk"] + args,
+            [sdk_bin] + args,
             capture_output=True,
             text=True,
-            cwd=cwd,
+            cwd=str(content_root),
+            env=env,
             timeout=300  # 5 minute timeout
         )
         return {
