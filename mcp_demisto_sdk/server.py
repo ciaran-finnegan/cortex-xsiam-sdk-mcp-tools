@@ -209,6 +209,93 @@ TOOLS = [
             "required": ["input_path", "output_path"]
         }
     ),
+    Tool(
+        name="generate_unit_tests",
+        description="Generate unit test scaffolds for integrations/scripts",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "input_path": {"type": "string", "description": "Path to integration/script"},
+                "output_path": {"type": "string", "description": "Output path for test file"}
+            },
+            "required": ["input_path"]
+        }
+    ),
+    Tool(
+        name="generate_test_playbook",
+        description="Generate a test playbook for an integration",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "input_path": {"type": "string", "description": "Path to integration YML"},
+                "output_path": {"type": "string", "description": "Output path for test playbook"}
+            },
+            "required": ["input_path"]
+        }
+    ),
+    Tool(
+        name="generate_outputs",
+        description="Generate context outputs from JSON response",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "input_path": {"type": "string", "description": "Path to integration YML"},
+                "command": {"type": "string", "description": "Command name to generate outputs for"},
+                "json_path": {"type": "string", "description": "Path to JSON response file"}
+            },
+            "required": ["input_path", "command"]
+        }
+    ),
+    Tool(
+        name="run_command",
+        description="Execute a command on XSIAM/XSOAR instance",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "Command to execute"},
+                "args": {"type": "string", "description": "Command arguments as JSON string"}
+            },
+            "required": ["command"]
+        }
+    ),
+    Tool(
+        name="run_playbook",
+        description="Run a playbook on XSIAM/XSOAR instance",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "playbook_id": {"type": "string", "description": "ID of playbook to run"},
+                "wait": {"type": "boolean", "description": "Wait for playbook completion"}
+            },
+            "required": ["playbook_id"]
+        }
+    ),
+    Tool(
+        name="openapi_codegen",
+        description="Generate integration from OpenAPI specification",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "input_path": {"type": "string", "description": "Path to OpenAPI spec file"},
+                "output_path": {"type": "string", "description": "Output directory"},
+                "name": {"type": "string", "description": "Integration name"}
+            },
+            "required": ["input_path"]
+        }
+    ),
+    Tool(
+        name="postman_codegen",
+        description="Generate integration from Postman collection",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "input_path": {"type": "string", "description": "Path to Postman collection JSON"},
+                "output_path": {"type": "string", "description": "Output directory"},
+                "name": {"type": "string", "description": "Integration name"}
+            },
+            "required": ["input_path"]
+        }
+    ),
 ]
 
 
@@ -235,6 +322,13 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         "find_dependencies": handle_find_dependencies,
         "update_release_notes": handle_update_release_notes,
         "zip_packs": handle_zip_packs,
+        "generate_unit_tests": handle_generate_unit_tests,
+        "generate_test_playbook": handle_generate_test_playbook,
+        "generate_outputs": handle_generate_outputs,
+        "run_command": handle_run_command,
+        "run_playbook": handle_run_playbook,
+        "openapi_codegen": handle_openapi_codegen,
+        "postman_codegen": handle_postman_codegen,
     }
     
     handler = handlers.get(name)
@@ -342,6 +436,66 @@ async def handle_update_release_notes(args: dict[str, Any]) -> dict[str, Any]:
 async def handle_zip_packs(args: dict[str, Any]) -> dict[str, Any]:
     """Handle zip_packs command."""
     cmd = ["zip-packs", "-i", args["input_path"], "-o", args["output_path"]]
+    return run_sdk_command(cmd)
+
+
+async def handle_generate_unit_tests(args: dict[str, Any]) -> dict[str, Any]:
+    """Handle generate_unit_tests command."""
+    cmd = ["generate-unit-tests", "-i", args["input_path"]]
+    if output_path := args.get("output_path"):
+        cmd.extend(["-o", output_path])
+    return run_sdk_command(cmd)
+
+
+async def handle_generate_test_playbook(args: dict[str, Any]) -> dict[str, Any]:
+    """Handle generate_test_playbook command."""
+    cmd = ["generate-test-playbook", "-i", args["input_path"]]
+    if output_path := args.get("output_path"):
+        cmd.extend(["-o", output_path])
+    return run_sdk_command(cmd)
+
+
+async def handle_generate_outputs(args: dict[str, Any]) -> dict[str, Any]:
+    """Handle generate_outputs command."""
+    cmd = ["generate-outputs", "-i", args["input_path"], "-c", args["command"]]
+    if json_path := args.get("json_path"):
+        cmd.extend(["-j", json_path])
+    return run_sdk_command(cmd)
+
+
+async def handle_run_command(args: dict[str, Any]) -> dict[str, Any]:
+    """Handle run_command command."""
+    cmd = ["run", "-q", args["command"]]
+    if cmd_args := args.get("args"):
+        cmd.extend(["--args", cmd_args])
+    return run_sdk_command(cmd)
+
+
+async def handle_run_playbook(args: dict[str, Any]) -> dict[str, Any]:
+    """Handle run_playbook command."""
+    cmd = ["run-playbook", "-p", args["playbook_id"]]
+    if args.get("wait"):
+        cmd.append("--wait")
+    return run_sdk_command(cmd)
+
+
+async def handle_openapi_codegen(args: dict[str, Any]) -> dict[str, Any]:
+    """Handle openapi_codegen command."""
+    cmd = ["openapi-codegen", "-i", args["input_path"]]
+    if output_path := args.get("output_path"):
+        cmd.extend(["-o", output_path])
+    if name := args.get("name"):
+        cmd.extend(["-n", name])
+    return run_sdk_command(cmd)
+
+
+async def handle_postman_codegen(args: dict[str, Any]) -> dict[str, Any]:
+    """Handle postman_codegen command."""
+    cmd = ["postman-codegen", "-i", args["input_path"]]
+    if output_path := args.get("output_path"):
+        cmd.extend(["-o", output_path])
+    if name := args.get("name"):
+        cmd.extend(["-n", name])
     return run_sdk_command(cmd)
 
 
