@@ -2,18 +2,33 @@
 
 [![CI](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/actions/workflows/codeql.yml/badge.svg)](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/actions/workflows/codeql.yml)
+[![License](https://img.shields.io/github/license/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools)](LICENSE)
+![Lifecycle: Alpha](https://img.shields.io/badge/lifecycle-alpha-orange)
+![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 
-**Alpha** — APIs and tool schemas may change. Not suitable for production use.
+Expose common `demisto-sdk` operations as MCP tools so an LLM can assist with Cortex XSIAM/XSOAR content development.
 
-An MCP server that exposes common `demisto-sdk` operations as tools, so an LLM (Cursor, Claude Code, Amazon Q, Codex CLI, etc.) can assist with Cortex XSIAM/XSOAR content development.
+## Stability & support
 
-## Quick demo
+- This project is **alpha**: interfaces may change between releases.
+- Treat **remote write tools** as production-impacting (`upload_content`, `run_command`, `run_playbook`).
+- Community project — not officially supported by Palo Alto Networks.
 
-Tool discovery in Claude Code (via `/mcp`):
+## Documentation
+
+- Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
+- MCP client configuration: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
+- Demo/screenshots: [`docs/DEMO.md`](docs/DEMO.md)
+
+<!-- markdownlint-disable MD033 -->
+<details>
+<summary>Screenshot: tool discovery in Claude Code (/mcp)</summary>
+
+> Add the screenshot at `docs/assets/claude-code-mcp-tools.png` for this to render.
 
 ![Claude Code showing demisto-sdk MCP tools](docs/assets/claude-code-mcp-tools.png)
-
-More screenshots: [`docs/DEMO.md`](docs/DEMO.md)
+</details>
+<!-- markdownlint-enable MD033 -->
 
 ## Why this exists
 
@@ -33,17 +48,15 @@ See:
 - MCP clients: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
 - Demo/screenshots: [`docs/DEMO.md`](docs/DEMO.md)
 
-## Example prompt
+## Common tasks (copy/paste prompts)
 
-These are sample prompts
-
-| Recipe | Runs where | Tools involved | Prompt |
+| Task | Scope | Tools | Prompt |
 |---|---|---|---|
-| Scaffold a new pack + integration | Local | `init_pack`, `init_integration`, `format_content`, `validate_content`, `lint_content` | “Create a new pack called `Acme_ServiceNow` under `Packs/`. Scaffold an integration called `AcmeServiceNow` using the HelloWorld template. Then run `format_content`, `validate_content`, and `lint_content` on the pack.” |
-| Pre‑PR checks | Local | `validate_content`, `lint_content` | “Run `validate_content` and `lint_content` on `Packs/Acme_ServiceNow`. Summarise errors with file paths and propose minimal fixes.” |
-| Generate integration docs | Local | `generate_docs` | “Run `generate_docs` for `Packs/Acme_ServiceNow/Integrations/AcmeServiceNow/AcmeServiceNow.yml` and write the output README next to it.” |
-| Discover ServiceNow items (read‑only) | Remote (read‑only) | `list_files` | “Use `list_files` and show me all available content items related to ServiceNow (scripts, playbooks, mappers, classifiers, etc.).” |
-| Download a targeted subset (read‑only) | Remote → local (read‑only) | `list_files`, `download_content` | “From `list_files`, pick the top 3 ServiceNow-related items and use `download_content` to download only those into a temporary pack called `Remote_Inspect_ServiceNow` for review. Do not upload anything.” |
+| Scaffold a pack + integration | Local | `init_pack`, `init_integration`, `format_content`, `validate_content`, `lint_content` | Create a pack called `Acme_ServiceNow` under `Packs/`. Scaffold an integration called `AcmeServiceNow` using the HelloWorld template. Then run `format_content`, `validate_content`, and `lint_content` on the pack. |
+| Pre‑PR checks | Local | `validate_content`, `lint_content` | Run `validate_content` and `lint_content` on `Packs/Acme_ServiceNow`. Summarise errors with file paths and propose minimal fixes. |
+| Generate integration docs | Local | `generate_docs` | Run `generate_docs` for `Packs/Acme_ServiceNow/Integrations/AcmeServiceNow/AcmeServiceNow.yml` and write the README next to it. |
+| Find ServiceNow items in tenant | Remote (read‑only) | `list_files` | Use `list_files` and show me all available content items related to ServiceNow (scripts, playbooks, mappers, classifiers, etc.). |
+| Download a small subset for review | Remote → local (read‑only) | `list_files`, `download_content` | From `list_files`, pick the top 3 ServiceNow-related items and use `download_content` to download only those into a temporary pack called `Remote_Inspect_ServiceNow`. Do not upload anything. |
 
 ## Prerequisites
 
@@ -110,31 +123,34 @@ See [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md) for configuration instructions 
 - Amazon Q Developer
 - OpenAI Codex CLI
 
+## CI & security scanning
+
+- **CI**: runs `ruff` and `pytest` on PRs and main.
+- **CodeQL**: performs static analysis security scanning on PRs and on a schedule.
+
 ## Sample outputs
 
-These are representative examples (truncated) of what you should see when the MCP tools run successfully.
-
-### `list_files` (read-only)
-
-This tool wraps `demisto-sdk download --list-files` and returns an inventory of custom content items available to download:
+<!-- markdownlint-disable MD033 -->
+<details>
+<summary><code>list_files</code> (read-only)</summary>
 
 ```text
 Successfully parsed 617 custom content objects.
 List of custom content files available to download (617):
 
 Content Name                                      Content Type
-BuildSimilarAlertSearchQuery                      script
-CleanUpJiraAlerts                                 script
-Acme - ServiceNow Ticket Sync                     playbook
+Acme ServiceNow Ticket Sync                       playbook
+AcmeServiceNow                                    integration
 Acme ServiceNow Classifier                        classifier
 Acme ServiceNow Mapper                            mapper
 Acme Instance Name                                incidentfield
 ...
 ```
 
-### `download_content` (single item)
+</details>
 
-Downloading a single item into a temporary pack for inspection (no upload):
+<details>
+<summary><code>download_content</code> (single item)</summary>
 
 ```text
 Fetching custom content bundle from server...
@@ -142,22 +158,26 @@ Successfully parsed 617 custom content objects.
 Filtering process completed, 1/617 items remain.
 Successful downloads: 1
 Saved:
-  Packs/RemoteSmokeTest/Scripts/JBTest/JBTest.yml
-  Packs/RemoteSmokeTest/Scripts/JBTest/JBTest.py
-  Packs/RemoteSmokeTest/Scripts/JBTest/README.md
+  Packs/Remote_Inspect_ServiceNow/Scripts/AcmeServiceNowHelper/AcmeServiceNowHelper.yml
+  Packs/Remote_Inspect_ServiceNow/Scripts/AcmeServiceNowHelper/AcmeServiceNowHelper.py
+  Packs/Remote_Inspect_ServiceNow/Scripts/AcmeServiceNowHelper/README.md
 ```
 
-### `validate_content`
+</details>
 
-Typical validation output (example):
+<details>
+<summary><code>validate_content</code></summary>
 
 ```text
-Running validation on: Packs/MyCompanyXSIAM
+Running validation on: Packs/Acme_ServiceNow
 Validation finished: 0 errors, 2 warnings
 - Warnings:
   - Some file(s) are missing optional documentation
   - pack_metadata.json could include more metadata (optional)
 ```
+
+</details>
+<!-- markdownlint-enable MD033 -->
 
 ## Tools
 
