@@ -126,10 +126,10 @@ List of custom content files available to download (617):
 Content Name                                      Content Type
 BuildSimilarAlertSearchQuery                      script
 CleanUpJiraAlerts                                 script
-RLS - DSPM Correlation Alerts v1                  playbook
-DSPM MS Forms Classifier                          classifier
-DSPM Backlog Mapper                               mapper
-Prisma Cloud Instance Name                        incidentfield
+Acme - ServiceNow Ticket Sync                     playbook
+Acme ServiceNow Classifier                        classifier
+Acme ServiceNow Mapper                            mapper
+Acme Instance Name                                incidentfield
 ...
 ```
 
