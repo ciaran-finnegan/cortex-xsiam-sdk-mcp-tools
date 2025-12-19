@@ -36,7 +36,7 @@ Restart Cursor after updating the configuration.
 
 If Cursor does not inherit your shell environment (common), run the MCP server via `zsh -lc` and export variables at process start.
 
-This pattern works well with 1Password CLI (no secrets stored in JSON; values are resolved at runtime):
+The pattern below keeps secrets out of the config by resolving them at runtime (replace the `SECRET_READ_CMD ...` placeholders with your organisation’s preferred secret retrieval mechanism):
 
 ```json
 {
@@ -45,7 +45,7 @@ This pattern works well with 1Password CLI (no secrets stored in JSON; values ar
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "export DEMISTO_BASE_URL=\"$(op read 'op://YourVault/XSIAM API/url')\"; export DEMISTO_API_KEY=\"$(op read 'op://YourVault/XSIAM API/credential')\"; export XSIAM_AUTH_ID=\"$(op read 'op://YourVault/XSIAM API/auth_id')\"; export DEMISTO_SDK_BIN=\"/absolute/path/to/demisto-sdk\"; exec /path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python -m mcp_demisto_sdk"
+        "export DEMISTO_BASE_URL=\"$(SECRET_READ_CMD DEMISTO_BASE_URL)\"; export DEMISTO_API_KEY=\"$(SECRET_READ_CMD DEMISTO_API_KEY)\"; export XSIAM_AUTH_ID=\"$(SECRET_READ_CMD XSIAM_AUTH_ID)\"; export DEMISTO_SDK_BIN=\"/absolute/path/to/demisto-sdk\"; exec /path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python -m mcp_demisto_sdk"
       ]
     }
   }
@@ -112,8 +112,11 @@ See [Codex MCP documentation](https://developers.openai.com/codex/mcp/).
 command = "/path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python"
 args = ["-m", "mcp_demisto_sdk"]
 ```
+
 ## Verifying the Configuration
+
 After configuring your client, verify the MCP server is working:
+
 1. Restart your IDE/client
 2. Check the MCP server status (client-specific)
 3. Try invoking a tool, e.g., ask the assistant to "list demisto-sdk tools"

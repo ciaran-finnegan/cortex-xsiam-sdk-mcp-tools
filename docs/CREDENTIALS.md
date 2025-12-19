@@ -15,42 +15,10 @@ The `demisto-sdk` requires credentials to interact with your XSIAM/XSOAR instanc
 ## Security guidance
 
 - **Do not commit secrets** (API keys, tokens, client secrets) to git.
-- **Avoid storing credentials directly in `.env` files.** Use a secrets manager (1Password, Keychain/Credential Manager, AWS Secrets Manager, GitHub Secrets) and inject via environment variables at runtime.
+- **Avoid storing credentials directly in `.env` files.** Prefer an OS credential store or an encrypted secrets store and inject via environment variables at runtime.
 - If you must use `.env` locally, ensure it is ignored by git, permissioned tightly, and treated as disposable.
 
-## Recommended storage options
-
-### 1Password CLI (recommended)
-
-See [1Password CLI documentation](https://developer.1password.com/docs/cli/).
-
-```bash
-# macOS
-brew install --cask 1password-cli
-
-# Sign in (opens browser/biometric)
-op signin
-```
-
-Create an item:
-
-```bash
-op item create \
-  --category="API Credential" \
-  --title="XSIAM API" \
-  --vault="YourVault" \
-  'url=https://your-tenant.xdr.au.paloaltonetworks.com' \
-  'credential=YOUR_API_KEY' \
-  'auth_id=YOUR_AUTH_ID'
-```
-
-Reference it from your shell profile:
-
-```bash
-export DEMISTO_BASE_URL="$(op read "op://YourVault/XSIAM API/url")"
-export DEMISTO_API_KEY="$(op read "op://YourVault/XSIAM API/credential")"
-export XSIAM_AUTH_ID="$(op read "op://YourVault/XSIAM API/auth_id")"
-```
+## Storage options (examples)
 
 ### macOS Keychain
 
@@ -88,25 +56,9 @@ export DEMISTO_API_KEY="$(secret-tool lookup service demisto-api-key account "$U
 export XSIAM_AUTH_ID="$(secret-tool lookup service demisto-auth-id account "$USER")"
 ```
 
-### AWS Secrets Manager
+### CI encrypted secrets (example)
 
-See [AWS Secrets Manager documentation](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html).
-
-```bash
-aws secretsmanager create-secret --name demisto-sdk/credentials \
-  --secret-string '{"url":"https://your-tenant.xdr.au.paloaltonetworks.com","api_key":"YOUR_API_KEY","auth_id":"YOUR_AUTH_ID"}'
-```
-
-```bash
-export DEMISTO_CREDS="$(aws secretsmanager get-secret-value --secret-id demisto-sdk/credentials --query SecretString --output text)"
-export DEMISTO_BASE_URL="$(echo "$DEMISTO_CREDS" | jq -r '.url')"
-export DEMISTO_API_KEY="$(echo "$DEMISTO_CREDS" | jq -r '.api_key')"
-export XSIAM_AUTH_ID="$(echo "$DEMISTO_CREDS" | jq -r '.auth_id')"
-```
-
-### GitHub Actions secrets
-
-See [GitHub Actions encrypted secrets documentation](https://docs.github.com/en/actions/security-guides/encrypted-secrets).
+Most CI systems provide an encrypted secret store. For GitHub Actions, see [encrypted secrets documentation](https://docs.github.com/en/actions/security-guides/encrypted-secrets).
 
 ```yaml
 env:

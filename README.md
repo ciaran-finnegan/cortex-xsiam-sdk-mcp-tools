@@ -1,5 +1,8 @@
 # Cortex XSIAM SDK MCP Tools
 
+[![CI](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/actions/workflows/codeql.yml/badge.svg)](https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/actions/workflows/codeql.yml)
+
 **Alpha** — APIs and tool schemas may change. Not suitable for production use.
 
 An MCP server that exposes common `demisto-sdk` operations as tools, so an LLM (Cursor, Claude Code, Amazon Q, Codex CLI, etc.) can assist with Cortex XSIAM/XSOAR content development.
@@ -21,29 +24,17 @@ See:
 - Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
 - MCP clients: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
 
-## Example prompts: typical XSIAM developer flows (LLM + MCP)
+## Example prompts (recipes)
 
-These are example prompts you can paste into your LLM chat after the MCP server is configured.
+These are ready-to-paste prompts. Each recipe declares **where it runs** and whether it is **read-only** or **remote write**.
 
-### Scaffold a new pack and integration (local)
-
-“Create a new pack called `Acme_ServiceNow` under `Packs/`. Scaffold an integration called `AcmeServiceNow` using the HelloWorld template. Then run `format_content`, `validate_content`, and `lint_content` on the pack.”
-
-### Pre-PR checks for an existing pack (local)
-
-“Run `validate_content` and `lint_content` on `Packs/Acme_ServiceNow`. Summarise errors with file paths and propose minimal fixes.”
-
-### Generate integration README docs (local)
-
-“Run `generate_docs` for `Packs/Acme_ServiceNow/Integrations/AcmeServiceNow/AcmeServiceNow.yml` and write the output README next to it.”
-
-### Read-only: find what exists in the tenant (remote)
-
-“Use `list_files` and show me all available content items related to **ServiceNow** (scripts, playbooks, mappers, classifiers, etc.).”
-
-### Read-only: download a small, targeted subset (remote → local)
-
-“From `list_files`, pick the **top 3 ServiceNow-related** items and use `download_content` to download only those into a temporary pack called `Remote_Inspect_ServiceNow` for review. Do not upload anything.”
+| Recipe | Runs where | Tools involved | Prompt |
+|---|---|---|---|
+| Scaffold a new pack + integration | Local | `init_pack`, `init_integration`, `format_content`, `validate_content`, `lint_content` | “Create a new pack called `Acme_ServiceNow` under `Packs/`. Scaffold an integration called `AcmeServiceNow` using the HelloWorld template. Then run `format_content`, `validate_content`, and `lint_content` on the pack.” |
+| Pre‑PR checks | Local | `validate_content`, `lint_content` | “Run `validate_content` and `lint_content` on `Packs/Acme_ServiceNow`. Summarise errors with file paths and propose minimal fixes.” |
+| Generate integration docs | Local | `generate_docs` | “Run `generate_docs` for `Packs/Acme_ServiceNow/Integrations/AcmeServiceNow/AcmeServiceNow.yml` and write the output README next to it.” |
+| Discover ServiceNow items (read‑only) | Remote (read‑only) | `list_files` | “Use `list_files` and show me all available content items related to ServiceNow (scripts, playbooks, mappers, classifiers, etc.).” |
+| Download a targeted subset (read‑only) | Remote → local (read‑only) | `list_files`, `download_content` | “From `list_files`, pick the top 3 ServiceNow-related items and use `download_content` to download only those into a temporary pack called `Remote_Inspect_ServiceNow` for review. Do not upload anything.” |
 
 ## Prerequisites
 
@@ -98,7 +89,6 @@ See [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) for secure credential storage o
 
 - macOS Keychain
 - Windows Credential Manager
-- AWS Secrets Manager
 - GitHub Actions secrets
 
 ### 4. Configure Your MCP Client
@@ -114,7 +104,12 @@ See [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md) for configuration instructions 
 ## Security notes
 
 - **Do not store credentials in git**. See [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) for guidance; prefer an OS keychain or a secrets manager and inject credentials via environment variables.
-- Treat **remote write operations** (`upload_content`, `run_command`, `run_playbook`) as production-impacting unless you are targeting a dedicated dev tenant.
+- Treat **remote write operations** as production-impacting unless you are targeting a dedicated dev tenant.
+
+## CI & security scanning
+
+- **CI**: runs `ruff` and `pytest` on PRs and main.
+- **CodeQL**: performs static analysis security scanning on PRs and on a schedule.
 
 ## Sample outputs
 
@@ -167,28 +162,28 @@ Validation finished: 0 errors, 2 warnings
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `init_pack` | Create content pack structure |
-| `init_integration` | Scaffold integration |
-| `init_script` | Scaffold script |
-| `format_content` | Standardise YAML/Python formatting |
-| `validate_content` | Check content validity |
-| `lint_content` | Run code quality checks |
-| `generate_docs` | Create README documentation |
-| `generate_unit_tests` | Generate test scaffolds |
-| `generate_test_playbook` | Create test playbook |
-| `generate_outputs` | Generate context paths from JSON |
-| `upload_content` | Deploy to XSIAM/XSOAR |
-| `download_content` | Sync content from platform |
-| `list_files` | List custom content items available to download (read-only) |
-| `run_command` | Execute commands remotely |
-| `run_playbook` | Run playbooks remotely |
-| `find_dependencies` | Analyse pack dependencies |
-| `update_release_notes` | Version management |
-| `zip_packs` | Create distributable archives |
-| `openapi_codegen` | Generate from OpenAPI spec |
-| `postman_codegen` | Generate from Postman collection |
+| Tool | Scope | Remote write | Description |
+|------|-------|-------------:|-------------|
+| `init_pack` | Local | No | Create content pack structure |
+| `init_integration` | Local | No | Scaffold integration |
+| `init_script` | Local | No | Scaffold script |
+| `format_content` | Local | No | Standardise YAML/Python formatting |
+| `validate_content` | Local | No | Check content validity |
+| `lint_content` | Local | No | Run code quality checks |
+| `generate_docs` | Local | No | Create README documentation |
+| `generate_unit_tests` | Local | No | Generate test scaffolds |
+| `generate_test_playbook` | Local | No | Create test playbook |
+| `generate_outputs` | Local | No | Generate context paths from JSON |
+| `find_dependencies` | Local | No | Analyse pack dependencies |
+| `update_release_notes` | Local | No | Version management |
+| `zip_packs` | Local | No | Create distributable archives |
+| `openapi_codegen` | Local | No | Generate from OpenAPI spec |
+| `postman_codegen` | Local | No | Generate from Postman collection |
+| `list_files` | Remote | No | List custom content items available to download (read-only) |
+| `download_content` | Remote | No | Download content from the tenant |
+| `upload_content` | Remote | **Yes** | Deploy content to XSIAM/XSOAR |
+| `run_command` | Remote | **Yes** | Execute a command on the tenant |
+| `run_playbook` | Remote | **Yes** | Run a playbook on the tenant |
 
 ## Development
 
