@@ -501,7 +501,15 @@ async def handle_postman_codegen(args: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> None:
     """Run the MCP server."""
-    asyncio.run(stdio_server(server))
+    async def run_stdio_async() -> None:
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                server.create_initialization_options(),
+            )
+
+    asyncio.run(run_stdio_async())
 
 
 if __name__ == "__main__":
