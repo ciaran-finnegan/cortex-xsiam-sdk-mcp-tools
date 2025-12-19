@@ -1,0 +1,30 @@
+{
+  "name": "run_playbook",
+  "description": "Run a playbook on a remote Cortex XSOAR/XSIAM instance.\n\nRequires:\n- DEMISTO_BASE_URL environment variable\n- DEMISTO_API_KEY environment variable\n\nUse Cases:\n- Test playbooks during development\n- Validate playbook execution\n- Debug playbook flow",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "playbook_id": {
+        "type": "string",
+        "description": "The playbook ID to run"
+      },
+      "wait": {
+        "type": "boolean",
+        "description": "Wait for playbook completion and return result",
+        "default": true
+      },
+      "timeout": {
+        "type": "integer",
+        "description": "Timeout in seconds when waiting for completion",
+        "default": 90
+      },
+      "insecure": {
+        "type": "boolean",
+        "description": "Skip SSL certificate validation",
+        "default": false
+      }
+    },
+    "required": ["playbook_id"]
+  }
+}
+

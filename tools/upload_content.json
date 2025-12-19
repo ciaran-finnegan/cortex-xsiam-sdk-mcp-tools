@@ -1,0 +1,20 @@
+{
+  "name": "upload_content",
+  "description": "Upload XSIAM content to a Cortex XSOAR/XSIAM instance.\n\nRequires:\n- DEMISTO_BASE_URL environment variable\n- DEMISTO_API_KEY environment variable\n\nUse for testing generated content on a live instance.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to content file or pack directory"
+      },
+      "insecure": {
+        "type": "boolean",
+        "description": "Skip SSL verification",
+        "default": false
+      }
+    },
+    "required": ["path"]
+  }
+}
+

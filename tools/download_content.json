@@ -1,0 +1,53 @@
+{
+  "name": "download_content",
+  "description": "Download content from a Cortex XSOAR/XSIAM instance to local repository.\n\nRequires:\n- DEMISTO_BASE_URL environment variable\n- DEMISTO_API_KEY environment variable\n\nUse Cases:\n- Download custom content for local development\n- Sync existing playbooks/scripts from instance\n- Export content for version control",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "output_path": {
+        "type": "string",
+        "description": "Path to pack directory to download content to"
+      },
+      "input_items": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Names of specific content items to download"
+      },
+      "regex": {
+        "type": "string",
+        "description": "Download all items matching this regex pattern"
+      },
+      "all_custom": {
+        "type": "boolean",
+        "description": "Download all available custom content",
+        "default": false
+      },
+      "list_files": {
+        "type": "boolean",
+        "description": "List available content items without downloading",
+        "default": false
+      },
+      "item_type": {
+        "type": "string",
+        "enum": ["IncidentType", "IndicatorType", "Field", "Layout", "Playbook", "Automation", "Classifier", "Mapper"],
+        "description": "Type of content item (for system items)"
+      },
+      "system": {
+        "type": "boolean",
+        "description": "Download system items instead of custom",
+        "default": false
+      },
+      "force": {
+        "type": "boolean",
+        "description": "Overwrite existing content",
+        "default": false
+      },
+      "run_format": {
+        "type": "boolean",
+        "description": "Format downloaded files automatically",
+        "default": true
+      }
+    }
+  }
+}
+

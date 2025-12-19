@@ -1,0 +1,38 @@
+{
+  "name": "update_release_notes",
+  "description": "Generate release notes for a pack and update pack_metadata.json version.\n\nCreates:\n- Release notes markdown file\n- Updated version in pack_metadata.json\n\nUse Cases:\n- Prepare pack for release\n- Document changes\n- Version management",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Pack path. Example: 'Packs/MyPack'"
+      },
+      "update_type": {
+        "type": "string",
+        "enum": ["major", "minor", "revision", "documentation"],
+        "description": "Type of version update"
+      },
+      "version": {
+        "type": "string",
+        "description": "Specific version to bump to (optional)"
+      },
+      "text": {
+        "type": "string",
+        "description": "Text to add to release notes"
+      },
+      "force": {
+        "type": "boolean",
+        "description": "Force update even if not required",
+        "default": false
+      },
+      "breaking_changes": {
+        "type": "boolean",
+        "description": "Mark as containing breaking changes",
+        "default": false
+      }
+    },
+    "required": ["input_path", "update_type"]
+  }
+}
+

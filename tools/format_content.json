@@ -1,0 +1,25 @@
+{
+  "name": "format_content",
+  "description": "Format XSIAM content files to Cortex standards.\n\nApplies:\n- YAML formatting and ordering\n- Field standardisation\n- Docker image updates (optional)\n- Schema compliance fixes\n\nRun before validate_content.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to content file or pack directory"
+      },
+      "update_docker": {
+        "type": "boolean",
+        "description": "Update Docker image to latest",
+        "default": false
+      },
+      "assume_yes": {
+        "type": "boolean",
+        "description": "Auto-accept all prompts",
+        "default": true
+      }
+    },
+    "required": ["path"]
+  }
+}
+

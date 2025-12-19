@@ -1,0 +1,42 @@
+{
+  "name": "postman_codegen",
+  "description": "Generate a Cortex XSIAM/XSOAR integration from a Postman Collection v2.1.\n\nCreates:\n- Integration YAML or package\n- Command implementations from Postman requests\n\nUse Cases:\n- Convert existing Postman collections to integrations\n- Bootstrap integration from API testing\n- Rapid prototyping",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_file": {
+        "type": "string",
+        "description": "Path to Postman Collection v2.1 JSON file"
+      },
+      "output_dir": {
+        "type": "string",
+        "description": "Directory to save generated integration",
+        "default": "."
+      },
+      "name": {
+        "type": "string",
+        "description": "Output integration name"
+      },
+      "output_prefix": {
+        "type": "string",
+        "description": "Global integration output prefix"
+      },
+      "command_prefix": {
+        "type": "string",
+        "description": "Prefix for each command"
+      },
+      "package": {
+        "type": "boolean",
+        "description": "Generate as package format instead of single YML",
+        "default": true
+      },
+      "config_out": {
+        "type": "boolean",
+        "description": "Generate config JSON for customisation instead of integration",
+        "default": false
+      }
+    },
+    "required": ["input_file"]
+  }
+}
+

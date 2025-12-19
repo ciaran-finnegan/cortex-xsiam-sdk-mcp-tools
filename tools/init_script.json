@@ -1,0 +1,19 @@
+{
+  "name": "init_script",
+  "description": "Scaffold a new XSIAM automation script within a pack.\n\nCreates:\n- Script Python file\n- Script YAML configuration\n- Test file\n- README template\n\nRun demisto-sdk format and validate after generating code.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Script name (PascalCase). Example: 'MyScript'"
+      },
+      "pack_path": {
+        "type": "string",
+        "description": "Path to the pack. Example: 'Packs/MyPack'"
+      }
+    },
+    "required": ["name", "pack_path"]
+  }
+}
+

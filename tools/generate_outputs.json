@@ -1,0 +1,27 @@
+{
+  "name": "generate_outputs",
+  "description": "Generate context outputs from example JSON response.\n\nAutomatically:\n- Parses JSON response structure\n- Creates context path definitions\n- Updates integration YAML\n\nUse Cases:\n- Define outputs from API responses\n- Update integration outputs\n- Standardise context paths",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Path to integration YAML file"
+      },
+      "command": {
+        "type": "string",
+        "description": "Command name to generate outputs for"
+      },
+      "example_file": {
+        "type": "string",
+        "description": "Path to JSON file with example response"
+      },
+      "prefix": {
+        "type": "string",
+        "description": "Output prefix (e.g., 'MyIntegration.Result')"
+      }
+    },
+    "required": ["input_path", "command"]
+  }
+}
+

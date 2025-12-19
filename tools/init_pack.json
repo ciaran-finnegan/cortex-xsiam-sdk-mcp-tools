@@ -1,0 +1,20 @@
+{
+  "name": "init_pack",
+  "description": "Create a new XSIAM content pack with standard directory structure.\n\nCreates:\n- Pack metadata\n- Integrations directory\n- Scripts directory\n- Playbooks directory\n- TestPlaybooks directory\n\nUsage: Call this before generating any new content.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Pack name (PascalCase, no spaces). Example: 'MySecurityPack'"
+      },
+      "output_dir": {
+        "type": "string",
+        "description": "Output directory. Defaults to 'Packs/'",
+        "default": "Packs"
+      }
+    },
+    "required": ["name"]
+  }
+}
+

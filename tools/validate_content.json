@@ -1,0 +1,25 @@
+{
+  "name": "validate_content",
+  "description": "Validate XSIAM content files using demisto-sdk.\n\nChecks:\n- YAML structure and schema compliance\n- Required fields present\n- Naming conventions\n- Dependencies resolved\n- Backward compatibility\n\nRun after generating or modifying content.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to content file or pack directory. Example: 'Packs/MyPack' or 'Packs/MyPack/Scripts/MyScript/MyScript.yml'"
+      },
+      "use_git": {
+        "type": "boolean",
+        "description": "Validate only changed files (git diff)",
+        "default": false
+      },
+      "no_backward_comp": {
+        "type": "boolean",
+        "description": "Skip backward compatibility checks",
+        "default": false
+      }
+    },
+    "required": ["path"]
+  }
+}
+

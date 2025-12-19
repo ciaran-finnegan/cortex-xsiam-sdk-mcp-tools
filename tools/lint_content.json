@@ -1,0 +1,25 @@
+{
+  "name": "lint_content",
+  "description": "Run code quality checks on XSIAM Python content.\n\nChecks:\n- Python syntax and style (pylint, flake8)\n- Type hints (mypy)\n- Security issues (bandit)\n- Test coverage\n\nRun as part of CI/CD or before commit.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to integration or script directory"
+      },
+      "docker": {
+        "type": "boolean",
+        "description": "Run linting inside Docker container",
+        "default": true
+      },
+      "test": {
+        "type": "boolean",
+        "description": "Run unit tests",
+        "default": true
+      }
+    },
+    "required": ["path"]
+  }
+}
+

@@ -1,0 +1,42 @@
+{
+  "name": "openapi_codegen",
+  "description": "Generate a Cortex XSIAM/XSOAR integration from an OpenAPI/Swagger specification.\n\nCreates:\n- Integration Python file\n- Integration YAML configuration\n- Command implementations from API endpoints\n\nUse Cases:\n- Rapidly create integrations from API docs\n- Auto-generate command structures\n- Bootstrap integration development",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_file": {
+        "type": "string",
+        "description": "Path to OpenAPI/Swagger JSON file"
+      },
+      "output_dir": {
+        "type": "string",
+        "description": "Directory to save generated integration",
+        "default": "."
+      },
+      "base_name": {
+        "type": "string",
+        "description": "Base filename for generated files"
+      },
+      "command_prefix": {
+        "type": "string",
+        "description": "Prefix for each command (e.g., 'myapi')"
+      },
+      "context_path": {
+        "type": "string",
+        "description": "Context output path prefix"
+      },
+      "fix_code": {
+        "type": "boolean",
+        "description": "Auto-format generated Python code",
+        "default": true
+      },
+      "use_default": {
+        "type": "boolean",
+        "description": "Use auto-generated configuration",
+        "default": true
+      }
+    },
+    "required": ["input_file"]
+  }
+}
+

@@ -1,0 +1,24 @@
+{
+  "name": "zip_packs",
+  "description": "Create uploadable zip file for Cortex XSOAR Marketplace.\n\nCreates:\n- Pack zip file ready for upload\n- Optionally uploads directly\n\nUse Cases:\n- Prepare pack for marketplace submission\n- Create distributable pack archive\n- Manual upload preparation",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Path to pack directory"
+      },
+      "output_path": {
+        "type": "string",
+        "description": "Output path for zip file"
+      },
+      "upload": {
+        "type": "boolean",
+        "description": "Upload zip directly to instance",
+        "default": false
+      }
+    },
+    "required": ["input_path"]
+  }
+}
+

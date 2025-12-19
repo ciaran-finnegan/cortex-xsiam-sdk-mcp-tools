@@ -1,0 +1,34 @@
+{
+  "name": "find_dependencies",
+  "description": "Find pack dependencies and update pack metadata.\n\nAnalyses:\n- Integration/script imports\n- Playbook sub-playbook calls\n- Command usage across packs\n\nUse Cases:\n- Update pack_metadata.json dependencies\n- Identify missing dependencies\n- Audit pack relationships",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Pack path to find dependencies. Example: 'Packs/MyPack'"
+      },
+      "no_update": {
+        "type": "boolean",
+        "description": "Find dependencies without updating pack metadata",
+        "default": false
+      },
+      "all_packs": {
+        "type": "boolean",
+        "description": "Return dependencies for ALL packs as JSON",
+        "default": false
+      },
+      "output_path": {
+        "type": "string",
+        "description": "Path for dependencies JSON (with all_packs flag)"
+      },
+      "get_dependent_on": {
+        "type": "boolean",
+        "description": "Get packs that depend ON the given pack",
+        "default": false
+      }
+    },
+    "required": ["input_path"]
+  }
+}
+

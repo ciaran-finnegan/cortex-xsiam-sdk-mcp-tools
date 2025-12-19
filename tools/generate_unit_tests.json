@@ -1,0 +1,19 @@
+{
+  "name": "generate_unit_tests",
+  "description": "Auto-generate unit test scaffolds for XSIAM integrations/scripts.\n\nCreates:\n- Test file with pytest structure\n- Mock data templates\n- Command test stubs\n\nRun after integration/script code is complete.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Path to the integration or script YAML file"
+      },
+      "output_dir": {
+        "type": "string",
+        "description": "Output directory for test file. Defaults to same directory"
+      }
+    },
+    "required": ["input_path"]
+  }
+}
+

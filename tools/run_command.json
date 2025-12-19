@@ -1,0 +1,33 @@
+{
+  "name": "run_command",
+  "description": "Run integration/script commands in the Playground of a remote XSOAR/XSIAM instance.\n\nRequires:\n- DEMISTO_BASE_URL environment variable\n- DEMISTO_API_KEY environment variable\n\nUse Cases:\n- Test commands during development\n- Debug integration behaviour\n- Generate outputs from real responses",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The command query to run. Example: '!ip ip=8.8.8.8'"
+      },
+      "incident_id": {
+        "type": "string",
+        "description": "Run command in context of specific incident (optional, defaults to Playground)"
+      },
+      "debug": {
+        "type": "boolean",
+        "description": "Enable debug mode for detailed output",
+        "default": false
+      },
+      "json_to_outputs": {
+        "type": "boolean",
+        "description": "Generate outputs schema from command response",
+        "default": false
+      },
+      "prefix": {
+        "type": "string",
+        "description": "Output prefix for json_to_outputs (e.g., 'VirusTotal.IP')"
+      }
+    },
+    "required": ["query"]
+  }
+}
+

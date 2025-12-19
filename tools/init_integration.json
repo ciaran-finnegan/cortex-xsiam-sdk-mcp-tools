@@ -1,0 +1,24 @@
+{
+  "name": "init_integration",
+  "description": "Scaffold a new XSIAM integration within a pack.\n\nCreates:\n- Integration Python file\n- Integration YAML configuration\n- Test file\n- README template\n\nRun demisto-sdk format and validate after generating code.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Integration name (PascalCase). Example: 'MyIntegration'"
+      },
+      "pack_path": {
+        "type": "string",
+        "description": "Path to the pack. Example: 'Packs/MyPack'"
+      },
+      "template": {
+        "type": "string",
+        "description": "Template type: 'HelloWorld', 'FeedHelloWorld', or custom template name",
+        "default": "HelloWorld"
+      }
+    },
+    "required": ["name", "pack_path"]
+  }
+}
+

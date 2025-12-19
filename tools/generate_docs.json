@@ -1,0 +1,24 @@
+{
+  "name": "generate_docs",
+  "description": "Generate README documentation for XSIAM content.\n\nCreates:\n- Command documentation with examples\n- Input/output specifications\n- Use case descriptions\n- Playbook images (for playbooks)\n\nRun after content passes validation.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Path to the YAML file (integration, script, or playbook)"
+      },
+      "output_dir": {
+        "type": "string",
+        "description": "Output directory for README. Defaults to same directory as input"
+      },
+      "force": {
+        "type": "boolean",
+        "description": "Overwrite existing documentation",
+        "default": true
+      }
+    },
+    "required": ["input_path"]
+  }
+}
+

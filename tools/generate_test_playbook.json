@@ -1,0 +1,23 @@
+{
+  "name": "generate_test_playbook",
+  "description": "Generate a test playbook from integration/script YAML.\n\nCreates:\n- Test playbook YAML\n- Test cases for each command\n\nUse Cases:\n- Create test coverage for integrations\n- Generate test scaffolds\n- Validate command functionality",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Path to integration or script YAML file"
+      },
+      "output_dir": {
+        "type": "string",
+        "description": "Output directory for test playbook"
+      },
+      "name": {
+        "type": "string",
+        "description": "Name for the test playbook"
+      }
+    },
+    "required": ["input_path"]
+  }
+}
+
