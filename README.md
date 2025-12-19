@@ -8,6 +8,8 @@
 
 Expose common `demisto-sdk` operations as MCP tools so an LLM can assist with Cortex XSIAM/XSOAR content development.
 
+**New in v0.2.0**: Pattern search (RAG) - semantic search over playbooks, scripts, integrations, XQL rules, and more from the official content library.
+
 ## Stability & support
 
 - This project is **alpha**: interfaces may change between releases.
@@ -18,6 +20,7 @@ Expose common `demisto-sdk` operations as MCP tools so an LLM can assist with Co
 
 - Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
 - MCP client configuration: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
+- XQL syntax reference: [`docs/XQL_REFERENCE.md`](docs/XQL_REFERENCE.md)
 - Demo/screenshots: [`docs/DEMO.md`](docs/DEMO.md)
 
 <!-- markdownlint-disable MD033 -->
@@ -34,6 +37,7 @@ Expose common `demisto-sdk` operations as MCP tools so an LLM can assist with Co
 
 - **Faster scaffolding**: create packs, integrations, and scripts quickly using an LLM coding assistant
 - **Higher quality**: run format/validate/lint using natural language
+- **Pattern search**: find relevant examples from the official content library using natural language queries
 
 ## Quickstart
 
@@ -123,6 +127,70 @@ See [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md) for configuration instructions 
 - Amazon Q Developer
 - OpenAI Codex CLI
 
+## Pattern Search (RAG)
+
+Search for patterns from the official [demisto/content](https://github.com/demisto/content) library using natural language. The LLM can find relevant playbooks, scripts, integrations, XQL rules, classifiers, and mappers to use as examples.
+
+### Setup
+
+**Option A: Download pre-built index (fastest)**
+
+```bash
+# Download latest pre-built index from releases
+curl -L https://github.com/ciaran-finnegan/cortex-xsiam-sdk-mcp-tools/releases/latest/download/pattern-index.tar.gz \
+  | tar -xz -C ~/.xsiam-patterns/
+```
+
+**Option B: Build from source**
+
+```bash
+# Clone content repo and build index
+git clone --depth 1 https://github.com/demisto/content.git ~/content
+xsiam-build-index --source ~/content
+```
+
+The index is stored at `~/.xsiam-patterns/chroma/` (configurable via `XSIAM_PATTERN_DB`).
+
+**Optional: Set content path for fetching full files**
+
+```bash
+export DEMISTO_SDK_CONTENT_PATH="$HOME/content"
+```
+
+### Pattern Search Tools
+
+| Tool | Description |
+|------|-------------|
+| `search_patterns` | Search all content types with natural language |
+| `find_similar_playbooks` | Find playbooks similar to a description |
+| `find_similar_scripts` | Find scripts with similar functionality |
+| `find_integration_patterns` | Find integration patterns (REST API, OAuth2, etc.) |
+| `find_xql_examples` | Find XQL parsing/modeling rule examples |
+| `find_classifier_examples` | Find event classifier examples |
+| `find_mapper_examples` | Find field mapper examples |
+| `get_pattern_index_stats` | Show index statistics |
+
+### Example Prompts
+
+| Task | Prompt |
+|------|--------|
+| Find enrichment patterns | "Use `find_similar_playbooks` to find playbooks that enrich IP addresses from multiple threat intel sources" |
+| Find XQL syntax | "Use `find_xql_examples` to find parsing rules that extract usernames from Windows event logs" |
+| Find integration patterns | "Use `find_integration_patterns` to find integrations that use OAuth2 with refresh tokens" |
+| Find script patterns | "Use `find_similar_scripts` to find scripts that parse email headers" |
+
+### Content Types Indexed
+
+| Type | Source |
+|------|--------|
+| Playbooks | `Packs/*/Playbooks/*.yml` |
+| Scripts | `Packs/*/Scripts/**/*.yml` |
+| Integrations | `Packs/*/Integrations/**/*.yml` |
+| Classifiers | `Packs/*/Classifiers/classifier-*.json` |
+| Mappers | `Packs/*/Classifiers/*mapper*.json` |
+| Parsing Rules (XQL) | `Packs/*/ParsingRules/**/*.xif` |
+| Modeling Rules (XQL) | `Packs/*/ModelingRules/**/*.xif` |
+
 ## CI & security scanning
 
 - **CI**: runs `ruff` and `pytest` on PRs and main.
@@ -181,6 +249,8 @@ Validation finished: 0 errors, 2 warnings
 
 ## Tools
 
+### SDK Tools (demisto-sdk)
+
 | Tool | Scope | Remote write | Description |
 |------|-------|-------------:|-------------|
 | `init_pack` | Local | No | Create content pack structure |
@@ -203,6 +273,19 @@ Validation finished: 0 errors, 2 warnings
 | `upload_content` | Remote | **Yes** | Deploy content to XSIAM/XSOAR |
 | `run_command` | Remote | **Yes** | Execute a command on the tenant |
 | `run_playbook` | Remote | **Yes** | Run a playbook on the tenant |
+
+### Pattern Search Tools (RAG)
+
+| Tool | Description |
+|------|-------------|
+| `search_patterns` | Search all content types with natural language |
+| `find_similar_playbooks` | Find playbooks similar to a description |
+| `find_similar_scripts` | Find scripts with similar functionality |
+| `find_integration_patterns` | Find integration patterns |
+| `find_xql_examples` | Find XQL parsing/modeling rule examples |
+| `find_classifier_examples` | Find event classifier examples |
+| `find_mapper_examples` | Find field mapper examples |
+| `get_pattern_index_stats` | Show index statistics |
 
 ## Development
 

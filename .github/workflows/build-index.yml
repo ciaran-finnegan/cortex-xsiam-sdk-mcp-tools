@@ -1,0 +1,83 @@
+name: Build Pattern Index
+
+on:
+  schedule:
+    # Run weekly on Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a release with the index'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  build-index:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout MCP tools
+        uses: actions/checkout@v4
+
+      - name: Checkout content repo
+        uses: actions/checkout@v4
+        with:
+          repository: demisto/content
+          path: content
+          depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[rag]"
+
+      - name: Build index
+        run: |
+          xsiam-build-index --source content --db-path ./pattern-index
+
+      - name: Create index archive
+        run: |
+          tar -czvf pattern-index.tar.gz pattern-index/
+
+      - name: Upload index artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pattern-index
+          path: pattern-index.tar.gz
+          retention-days: 30
+
+      - name: Get content repo version
+        id: content-version
+        run: |
+          cd content
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_DATE=$(git log -1 --format=%cs)
+          echo "version=${COMMIT_DATE}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: ${{ github.event.inputs.create_release == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: index-${{ steps.content-version.outputs.version }}
+          name: Pattern Index (${{ steps.content-version.outputs.version }})
+          body: |
+            Pre-built pattern index from demisto/content.
+
+            **Content version**: ${{ steps.content-version.outputs.version }}
+
+            ## Installation
+
+            ```bash
+            # Download and extract
+            curl -L https://github.com/${{ github.repository }}/releases/download/index-${{ steps.content-version.outputs.version }}/pattern-index.tar.gz | tar -xz -C ~/.xsiam-patterns/
+            ```
+
+            The index will be available at `~/.xsiam-patterns/chroma/`.
+          files: pattern-index.tar.gz
+          draft: false
+          prerelease: false

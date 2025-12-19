@@ -1,8 +1,9 @@
 """
-MCP Server for demisto-sdk commands.
+MCP Server for demisto-sdk commands with pattern search (RAG).
 
-Provides LLM coding assistants with direct access to demisto-sdk operations
-for XSIAM/XSOAR content development.
+Provides LLM coding assistants with:
+- Direct access to demisto-sdk operations for XSIAM/XSOAR content development
+- Semantic search over playbooks, scripts, integrations, and XQL rules
 
 ⚠️ ALPHA: Not suitable for production use.
 """
@@ -23,6 +24,17 @@ try:
 except ImportError:
     print("MCP SDK not installed. Install with: pip install mcp", file=sys.stderr)
     sys.exit(1)
+
+# RAG tools (optional - requires chromadb and sentence-transformers)
+RAG_AVAILABLE = False
+RAG_TOOLS = []
+RAG_HANDLERS = {}
+
+try:
+    from .rag.tools import RAG_TOOLS, RAG_HANDLERS
+    RAG_AVAILABLE = True
+except ImportError:
+    pass  # RAG dependencies not installed
 
 
 server = Server("demisto-sdk")
@@ -352,14 +364,18 @@ TOOLS = [
 @server.list_tools()
 async def list_tools() -> list[Tool]:
     """Return available tools."""
-    return TOOLS
+    all_tools = TOOLS.copy()
+    if RAG_AVAILABLE and RAG_TOOLS:
+        all_tools.extend(RAG_TOOLS)
+    return all_tools
 
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Execute a tool and return results."""
-    
-    handlers = {
+
+    # SDK tool handlers
+    sdk_handlers = {
         "init_pack": handle_init_pack,
         "init_integration": handle_init_integration,
         "init_script": handle_init_script,
@@ -381,11 +397,17 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         "openapi_codegen": handle_openapi_codegen,
         "postman_codegen": handle_postman_codegen,
     }
-    
-    handler = handlers.get(name)
+
+    # Check SDK handlers first
+    handler = sdk_handlers.get(name)
+
+    # Check RAG handlers if not found
+    if not handler and RAG_AVAILABLE:
+        handler = RAG_HANDLERS.get(name)
+
     if not handler:
         return [TextContent(type="text", text=f"Unknown tool: {name}")]
-    
+
     result = await handler(arguments)
     return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
