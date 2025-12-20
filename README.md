@@ -84,17 +84,24 @@ git clone --depth 1 https://github.com/demisto/content.git ~/content
 xsiam-build-index --source ~/content
 ```
 
-**Optional**: Set content path to enable fetching full file contents:
+### 4. Configure Content Path (Recommended)
+
+When you search for patterns, the tools return metadata (name, description, pack). To also fetch the **full source code** (YAML, Python, XQL), set the path to your local clone of the [demisto/content](https://github.com/demisto/content) repository:
 
 ```bash
-export DEMISTO_SDK_CONTENT_PATH="$HOME/content"  # Add to ~/.zshrc
+# Add to ~/.zshrc (or ~/.bashrc)
+export DEMISTO_SDK_CONTENT_PATH="$HOME/content"
 ```
 
-### 4. Configure Credentials
+This enables prompts like: *"Find playbooks that enrich IP addresses and show me the full YAML"*
+
+Without this variable, pattern search still works but returns metadata only.
+
+### 5. Configure Credentials
 
 See [docs/CREDENTIALS.md](docs/CREDENTIALS.md) for secure credential storage (macOS Keychain, Windows Credential Manager, GitHub Actions secrets).
 
-### 5. Configure Your MCP Client
+### 6. Configure Your MCP Client
 
 See [docs/MCP_CLIENTS.md](docs/MCP_CLIENTS.md) for setup instructions.
 
