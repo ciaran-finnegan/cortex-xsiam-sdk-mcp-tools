@@ -95,7 +95,11 @@ class PatternStore:
         return self._model
 
     def _create_embedding_text(self, item: dict[str, Any], item_type: str) -> str:
-        """Create text for embedding from an item."""
+        """Create text for embedding from an item.
+
+        Builds a rich text representation including all searchable fields
+        to enable semantic search across the demisto/content repository.
+        """
         parts = []
 
         # Name and description are always included
@@ -103,26 +107,229 @@ class PatternStore:
             parts.append(f"name: {name}")
         if desc := item.get("description"):
             parts.append(f"description: {desc}")
+        if pack := item.get("pack"):
+            parts.append(f"pack: {pack}")
+        if intents := item.get("intents"):
+            parts.append(f"intents: {', '.join(intents)}")
 
         # Type-specific fields
         if item_type == "playbook":
-            if intents := item.get("intents"):
-                parts.append(f"intents: {', '.join(intents)}")
+            # Commands with brand context
             if commands := item.get("commands"):
-                cmd_names = [c.get("command", "") for c in commands[:10]]
-                parts.append(f"commands: {', '.join(cmd_names)}")
+                cmd_strs = []
+                for c in commands[:20]:
+                    brand = c.get("brand", "")
+                    cmd = c.get("command", "")
+                    if brand and cmd:
+                        cmd_strs.append(f"{brand}:{cmd}")
+                    elif cmd:
+                        cmd_strs.append(cmd)
+                if cmd_strs:
+                    parts.append(f"commands: {', '.join(cmd_strs)}")
+
+            # Subplaybooks
             if subplaybooks := item.get("subplaybooks"):
-                sub_names = [s.get("name", "") for s in subplaybooks[:5]]
-                parts.append(f"subplaybooks: {', '.join(sub_names)}")
+                sub_names = [s.get("name", "") for s in subplaybooks[:10] if s.get("name")]
+                if sub_names:
+                    parts.append(f"subplaybooks: {', '.join(sub_names)}")
+
+            # Task types
             if task_counts := item.get("task_counts"):
                 parts.append(f"task_types: {', '.join(task_counts.keys())}")
 
+            # Inputs with descriptions
+            if inputs := item.get("inputs"):
+                input_strs = []
+                for inp in inputs[:10]:
+                    if isinstance(inp, dict):
+                        inp_name = inp.get("key", "") or inp.get("name", "")
+                        inp_desc = inp.get("description", "")
+                        if inp_name:
+                            input_strs.append(f"{inp_name}: {inp_desc}" if inp_desc else inp_name)
+                if input_strs:
+                    parts.append(f"inputs: {'; '.join(input_strs)}")
+
+            # Outputs with descriptions
+            if outputs := item.get("outputs"):
+                output_strs = []
+                for out in outputs[:10]:
+                    if isinstance(out, dict):
+                        out_path = out.get("contextPath", "") or out.get("name", "")
+                        out_desc = out.get("description", "")
+                        if out_path:
+                            output_strs.append(f"{out_path}: {out_desc}" if out_desc else out_path)
+                if output_strs:
+                    parts.append(f"outputs: {'; '.join(output_strs)}")
+
         elif item_type == "script":
+            if script_type := item.get("type"):
+                parts.append(f"type: {script_type}")
+            if subtype := item.get("subtype"):
+                parts.append(f"subtype: {subtype}")
             if tags := item.get("tags"):
                 parts.append(f"tags: {', '.join(tags)}")
+
+            # Arguments with descriptions
             if args := item.get("args"):
-                arg_names = [a.get("name", "") for a in args[:10]]
-                parts.append(f"arguments: {', '.join(arg_names)}")
+                arg_strs = []
+                for arg in args[:15]:
+                    if isinstance(arg, dict):
+                        arg_name = arg.get("name", "")
+                        arg_desc = arg.get("description", "")
+                        if arg_name:
+                            arg_strs.append(f"{arg_name}: {arg_desc}" if arg_desc else arg_name)
+                if arg_strs:
+                    parts.append(f"arguments: {'; '.join(arg_strs)}")
+
+            # Outputs with descriptions
+            if outputs := item.get("outputs"):
+                output_strs = []
+                for out in outputs[:10]:
+                    if isinstance(out, dict):
+                        out_path = out.get("contextPath", "") or out.get("name", "")
+                        out_desc = out.get("description", "")
+                        if out_path:
+                            output_strs.append(f"{out_path}: {out_desc}" if out_desc else out_path)
+                if output_strs:
+                    parts.append(f"outputs: {'; '.join(output_strs)}")
+
+        elif item_type == "integration":
+            if category := item.get("category"):
+                parts.append(f"category: {category}")
+            if docker_image := item.get("docker_image"):
+                parts.append(f"docker: {docker_image}")
+
+            # Commands with descriptions, arguments, and outputs
+            if commands := item.get("commands"):
+                cmd_strs = []
+                all_args = []
+                all_outputs = []
+
+                for cmd in commands[:35]:
+                    if isinstance(cmd, dict):
+                        cmd_name = cmd.get("name", "")
+                        cmd_desc = cmd.get("description", "")
+                        if cmd_name:
+                            cmd_strs.append(f"{cmd_name}: {cmd_desc}" if cmd_desc else cmd_name)
+
+                        # Collect arguments
+                        if args := cmd.get("arguments"):
+                            for arg in args[:8]:
+                                if isinstance(arg, dict):
+                                    arg_name = arg.get("name", "")
+                                    arg_desc = arg.get("description", "")
+                                    if arg_name and len(all_args) < 50:
+                                        arg_str = f"{cmd_name}.{arg_name}"
+                                        if arg_desc:
+                                            arg_str += f": {arg_desc[:80]}"
+                                        all_args.append(arg_str)
+
+                        # Collect outputs
+                        if outputs := cmd.get("outputs"):
+                            for out in outputs[:6]:
+                                if isinstance(out, dict):
+                                    ctx_path = out.get("contextPath", "")
+                                    out_desc = out.get("description", "")
+                                    if ctx_path and len(all_outputs) < 40:
+                                        out_str = ctx_path
+                                        if out_desc:
+                                            out_str += f": {out_desc[:60]}"
+                                        all_outputs.append(out_str)
+
+                if cmd_strs:
+                    parts.append(f"commands: {'; '.join(cmd_strs)}")
+                if all_args:
+                    parts.append(f"command_arguments: {'; '.join(all_args)}")
+                if all_outputs:
+                    parts.append(f"command_outputs: {'; '.join(all_outputs)}")
+
+            # Configuration parameters with details
+            if config := item.get("configuration"):
+                if isinstance(config, list):
+                    config_strs = []
+                    for c in config[:15]:
+                        if isinstance(c, dict):
+                            cfg_name = c.get("name", "") or c.get("display", "")
+                            if cfg_name:
+                                config_strs.append(cfg_name)
+                        elif isinstance(c, str) and c:
+                            config_strs.append(c)
+                    if config_strs:
+                        parts.append(f"configuration: {', '.join(config_strs)}")
+
+        elif item_type == "classifier":
+            if clf_type := item.get("type"):
+                parts.append(f"type: {clf_type}")
+            if brand := item.get("brand"):
+                parts.append(f"brand: {brand}")
+            if default_type := item.get("default_type"):
+                parts.append(f"default_incident_type: {default_type}")
+
+            # Incident types this classifier can identify
+            if incident_types := item.get("incident_types"):
+                if isinstance(incident_types, list):
+                    type_strs = [t for t in incident_types[:15] if t]
+                    if type_strs:
+                        parts.append(f"incident_types: {', '.join(type_strs)}")
+
+            # Transformer keys (classification logic)
+            if transformer_keys := item.get("transformer_keys"):
+                if isinstance(transformer_keys, list):
+                    key_strs = [k for k in transformer_keys[:10] if k]
+                    if key_strs:
+                        parts.append(f"classification_logic: {'; '.join(key_strs)}")
+
+        elif item_type == "mapper":
+            if mapper_type := item.get("type"):
+                parts.append(f"type: {mapper_type}")
+            if direction := item.get("direction"):
+                parts.append(f"direction: {direction}")
+            if brand := item.get("brand"):
+                parts.append(f"brand: {brand}")
+
+            # Incident types this mapper handles
+            if incident_types := item.get("incident_types"):
+                if isinstance(incident_types, list):
+                    type_strs = [t for t in incident_types[:15] if t]
+                    if type_strs:
+                        parts.append(f"incident_types: {', '.join(type_strs)}")
+
+            # Target fields being mapped
+            if fields := item.get("fields"):
+                if isinstance(fields, list):
+                    field_names = [f for f in fields[:25] if f]
+                    if field_names:
+                        parts.append(f"target_fields: {', '.join(field_names)}")
+
+            # Field mappings (source -> target)
+            if field_mappings := item.get("field_mappings"):
+                if isinstance(field_mappings, list):
+                    mapping_strs = [m for m in field_mappings[:20] if m]
+                    if mapping_strs:
+                        parts.append(f"field_mappings: {'; '.join(mapping_strs)}")
+
+        elif item_type in ("parsing_rule", "modeling_rule"):
+            if rule_type := item.get("rule_type"):
+                parts.append(f"rule_type: {rule_type}")
+
+            # Include XQL content preview for searchability
+            if content_preview := item.get("content_preview"):
+                # Truncate but keep meaningful XQL syntax
+                parts.append(f"xql: {content_preview[:400]}")
+
+            # Filter statements
+            if filters := item.get("filters"):
+                if isinstance(filters, list):
+                    filter_strs = [f for f in filters[:5] if f]
+                    if filter_strs:
+                        parts.append(f"filters: {'; '.join(filter_strs)}")
+
+            # Alter statements
+            if alters := item.get("alters"):
+                if isinstance(alters, list):
+                    alter_strs = [a for a in alters[:5] if a]
+                    if alter_strs:
+                        parts.append(f"alters: {'; '.join(alter_strs)}")
 
         return " | ".join(parts)
 

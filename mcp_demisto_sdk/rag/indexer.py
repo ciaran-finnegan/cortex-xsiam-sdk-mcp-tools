@@ -232,14 +232,68 @@ def parse_integration(path: Path, pack_name: str) -> dict[str, Any] | None:
     script = data.get("script", {})
     commands = script.get("commands", []) if isinstance(script, dict) else []
 
-    # Extract command names
+    # Extract detailed command info including arguments and outputs
     command_list = []
     for cmd in commands:
         if isinstance(cmd, dict):
-            command_list.append({
+            cmd_info = {
                 "name": cmd.get("name", ""),
                 "description": cmd.get("description", ""),
+            }
+
+            # Extract arguments with their descriptions
+            args = cmd.get("arguments", [])
+            if args and isinstance(args, list):
+                arg_list = []
+                for arg in args[:10]:
+                    if isinstance(arg, dict):
+                        arg_name = arg.get("name", "")
+                        arg_desc = arg.get("description", "")
+                        arg_required = arg.get("required", False)
+                        if arg_name:
+                            arg_list.append({
+                                "name": arg_name,
+                                "description": arg_desc,
+                                "required": arg_required,
+                            })
+                if arg_list:
+                    cmd_info["arguments"] = arg_list
+
+            # Extract outputs with context paths
+            outputs = cmd.get("outputs", [])
+            if outputs and isinstance(outputs, list):
+                output_list = []
+                for out in outputs[:10]:
+                    if isinstance(out, dict):
+                        ctx_path = out.get("contextPath", "")
+                        out_desc = out.get("description", "")
+                        out_type = out.get("type", "")
+                        if ctx_path:
+                            output_list.append({
+                                "contextPath": ctx_path,
+                                "description": out_desc,
+                                "type": out_type,
+                            })
+                if output_list:
+                    cmd_info["outputs"] = output_list
+
+            command_list.append(cmd_info)
+
+    # Extract configuration parameter details
+    config_list = []
+    for c in config:
+        if isinstance(c, dict):
+            config_list.append({
+                "name": c.get("name", ""),
+                "display": c.get("display", ""),
+                "type": c.get("type", ""),
+                "required": c.get("required", False),
             })
+
+    # Extract supported Docker image for context
+    docker_image = ""
+    if isinstance(script, dict):
+        docker_image = script.get("dockerimage", "")
 
     return {
         "id": commonfields.get("id") or data.get("name", path.stem),
@@ -250,8 +304,9 @@ def parse_integration(path: Path, pack_name: str) -> dict[str, Any] | None:
         "fromversion": data.get("fromversion", ""),
         "deprecated": bool(data.get("deprecated")),
         "category": data.get("category", ""),
-        "commands": command_list[:30],
-        "configuration": [c.get("name", "") for c in config if isinstance(c, dict)][:20],
+        "commands": command_list[:40],
+        "configuration": config_list[:20],
+        "docker_image": docker_image,
         "intents": infer_intents(data.get("name", "") + " " + data.get("description", "")),
         "score": 10,
     }
@@ -263,6 +318,21 @@ def parse_classifier(path: Path, pack_name: str) -> dict[str, Any] | None:
     if not data:
         return None
 
+    # Extract incident types and their mappings
+    key_type_map = data.get("keyTypeMap", {})
+    incident_types = list(key_type_map.values()) if isinstance(key_type_map, dict) else []
+
+    # Extract transformer keys (what fields are used for classification)
+    transformer = data.get("transformer", {})
+    transformer_keys = []
+    if isinstance(transformer, dict):
+        for key, value in transformer.items():
+            if isinstance(value, dict) and value.get("simple"):
+                transformer_keys.append(f"{key}={value.get('simple')}")
+
+    # Default incident type
+    default_type = data.get("defaultIncidentType", "")
+
     return {
         "id": data.get("id", path.stem),
         "name": data.get("name", ""),
@@ -271,6 +341,9 @@ def parse_classifier(path: Path, pack_name: str) -> dict[str, Any] | None:
         "pack": pack_name,
         "type": data.get("type", ""),
         "brand": data.get("brandName", ""),
+        "incident_types": list(set(incident_types))[:20],
+        "default_type": default_type,
+        "transformer_keys": transformer_keys[:10],
         "intents": ["classification"],
         "score": 10,
     }
@@ -282,15 +355,45 @@ def parse_mapper(path: Path, pack_name: str) -> dict[str, Any] | None:
     if not data:
         return None
 
-    # Extract mapped fields
+    # Extract mapped fields and incident types
     mapping = data.get("mapping", {})
     fields = []
+    incident_types = []
+    field_mappings = []  # Source -> target mappings
+
     if isinstance(mapping, dict):
         for incident_type, field_mapping in mapping.items():
+            if incident_type and incident_type not in incident_types:
+                incident_types.append(incident_type)
+
             if isinstance(field_mapping, dict):
                 internal_mapping = field_mapping.get("internalMapping", {})
                 if isinstance(internal_mapping, dict):
-                    fields.extend(list(internal_mapping.keys())[:10])
+                    for field_name, field_config in internal_mapping.items():
+                        if field_name and field_name not in fields:
+                            fields.append(field_name)
+
+                        # Extract the source field for this mapping
+                        if isinstance(field_config, dict):
+                            simple = field_config.get("simple", "")
+                            complex_val = field_config.get("complex", {})
+                            if simple and len(field_mappings) < 30:
+                                field_mappings.append(f"{simple}->{field_name}")
+                            elif isinstance(complex_val, dict):
+                                root = complex_val.get("root", "")
+                                if root and len(field_mappings) < 30:
+                                    field_mappings.append(f"{root}->{field_name}")
+
+    # Determine direction from type field or filename
+    mapper_type = data.get("type", "")
+    if mapper_type == "mapping-incoming":
+        direction = "incoming"
+    elif mapper_type == "mapping-outgoing":
+        direction = "outgoing"
+    elif "incoming" in path.stem.lower():
+        direction = "incoming"
+    else:
+        direction = "outgoing"
 
     return {
         "id": data.get("id", path.stem),
@@ -298,10 +401,12 @@ def parse_mapper(path: Path, pack_name: str) -> dict[str, Any] | None:
         "description": data.get("description", ""),
         "path": str(path),
         "pack": pack_name,
-        "type": data.get("type", ""),
-        "direction": "incoming" if "incoming" in path.stem.lower() else "outgoing",
+        "type": mapper_type,
+        "direction": direction,
         "brand": data.get("brandName", ""),
-        "fields": fields[:20],
+        "incident_types": incident_types[:20],
+        "fields": fields[:30],
+        "field_mappings": field_mappings[:30],
         "intents": ["mapping"],
         "score": 10,
     }
