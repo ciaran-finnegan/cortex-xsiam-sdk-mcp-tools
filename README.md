@@ -18,6 +18,7 @@ Expose common `demisto-sdk` operations as MCP tools so an LLM can assist with Co
 
 ## Documentation
 
+- **Sample prompts**: [`docs/SAMPLE_PROMPTS.md`](docs/SAMPLE_PROMPTS.md) - Ready-to-use prompts for content development
 - Credentials: [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md)
 - MCP client configuration: [`docs/MCP_CLIENTS.md`](docs/MCP_CLIENTS.md)
 - XQL syntax reference: [`docs/XQL_REFERENCE.md`](docs/XQL_REFERENCE.md)
