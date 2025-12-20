@@ -40,13 +40,18 @@ See [`docs/CREDENTIALS.md`](docs/CREDENTIALS.md) and [`docs/MCP_CLIENTS.md`](doc
 
 ## Common tasks (copy/paste prompts)
 
-| Task | Scope | Tools | Prompt |
-|---|---|---|---|
-| Scaffold a pack + integration | Local | `init_pack`, `init_integration`, `format_content`, `validate_content`, `lint_content` | Create a pack called `Acme_ServiceNow` under `Packs/`. Scaffold an integration called `AcmeServiceNow` using the HelloWorld template. Then run `format_content`, `validate_content`, and `lint_content` on the pack. |
-| Pre‑PR checks | Local | `validate_content`, `lint_content` | Run `validate_content` and `lint_content` on `Packs/Acme_ServiceNow`. Summarise errors with file paths and propose minimal fixes. |
-| Generate integration docs | Local | `generate_docs` | Run `generate_docs` for `Packs/Acme_ServiceNow/Integrations/AcmeServiceNow/AcmeServiceNow.yml` and write the README next to it. |
-| Find ServiceNow items in tenant | Remote (read‑only) | `list_files` | Use `list_files` and show me all available content items related to ServiceNow (scripts, playbooks, mappers, classifiers, etc.). |
-| Download a small subset for review | Remote → local (read‑only) | `list_files`, `download_content` | From `list_files`, pick the top 3 ServiceNow-related items and use `download_content` to download only those into a temporary pack called `Remote_Inspect_ServiceNow`. Do not upload anything. |
+| Task | Tools | Prompt |
+|------|-------|--------|
+| Find enrichment patterns | `find_similar_playbooks` | Use `find_similar_playbooks` to find playbooks that enrich IP addresses from multiple threat intel sources. Show the top 5 with their pack names. |
+| Find XQL parsing examples | `find_xql_examples` | Use `find_xql_examples` to find parsing rules that extract authentication events from Windows Security logs. |
+| Create playbook from patterns | `find_similar_playbooks`, `init_pack` | Use `find_similar_playbooks` to find phishing investigation playbooks, then create a new pack called `AcmePhishing` with a similar playbook structure. |
+| Find integration patterns | `find_integration_patterns` | Use `find_integration_patterns` to find integrations that use OAuth2 with token refresh. Show me the authentication code patterns. |
+| Find script examples | `find_similar_scripts` | Use `find_similar_scripts` to find scripts that parse email headers and extract sender information. |
+| Scaffold + validate | `init_pack`, `format_content`, `validate_content` | Create a pack called `Acme_ServiceNow` under `Packs/`. Scaffold an integration using the HelloWorld template, then run `format_content` and `validate_content`. |
+| Pre-PR checks | `validate_content`, `lint_content` | Run `validate_content` and `lint_content` on `Packs/Acme_ServiceNow`. Summarise errors and propose fixes. |
+| Check index stats | `get_pattern_index_stats` | Use `get_pattern_index_stats` to show what content is available in the pattern index. |
+
+See [`docs/SAMPLE_PROMPTS.md`](docs/SAMPLE_PROMPTS.md) for more comprehensive examples.
 
 ## Prerequisites
 
