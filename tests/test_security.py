@@ -7,8 +7,6 @@ These tests verify that security controls are working correctly:
 - SSL insecure flag acknowledgment
 """
 
-import os
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -102,7 +100,7 @@ class TestValidateSdkBinary:
         # We just verify it doesn't reject the name
         result = validate_sdk_binary("demisto-sdk")
         # Result can be path (if installed) or None (if not found in PATH)
-        # The key is it's not rejected for being an invalid name
+        assert result is None or "demisto-sdk" in result
 
     def test_arbitrary_binary_rejected(self) -> None:
         """Test that arbitrary binary names are rejected."""

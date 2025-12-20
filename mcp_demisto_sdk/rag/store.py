@@ -9,7 +9,7 @@ import hashlib
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -201,9 +201,9 @@ class PatternStore:
 
             # Commands with descriptions, arguments, and outputs
             if commands := item.get("commands"):
-                cmd_strs = []
-                all_args = []
-                all_outputs = []
+                cmd_strs: list[str] = []
+                all_args: list[str] = []
+                all_outputs: list[str] = []
 
                 for cmd in commands[:35]:
                     if isinstance(cmd, dict):
@@ -380,7 +380,7 @@ class PatternStore:
                     continue
 
                 # Generate embedding
-                embedding = self.model.encode(embed_text).tolist()
+                embedding = [float(x) for x in self.model.encode(embed_text).tolist()]
 
                 # Convert absolute path to relative path if content_root provided
                 stored_path = item_path
@@ -394,14 +394,14 @@ class PatternStore:
                         logger.debug(f"Path not relative to content_root: {item_path}")
 
                 # Prepare metadata (ChromaDB requires flat structure)
-                metadata = {
+                metadata: dict[str, str | int | float | bool | None] = {
                     "type": item_type,
                     "id": str(item_id),
                     "name": item.get("name", ""),
                     "path": stored_path,
                     "pack": item.get("pack", ""),
-                    "score": item.get("score", 0),
-                    "deprecated": item.get("deprecated", False),
+                    "score": int(item.get("score", 0)),
+                    "deprecated": bool(item.get("deprecated", False)),
                     "fromversion": item.get("fromversion", ""),
                 }
 
@@ -415,7 +415,7 @@ class PatternStore:
                 embeddings.append(embedding)
 
             if ids:
-                self._collection.upsert(
+                cast(Any, self._collection).upsert(
                     ids=ids,
                     documents=documents,
                     metadatas=metadatas,
@@ -447,7 +447,7 @@ class PatternStore:
             List of matching items with similarity scores
         """
         # Build where clause for filtering
-        where_clauses = []
+        where_clauses: list[dict[str, dict[str, str | int | float | bool]]] = []
 
         if item_type:
             where_clauses.append({"type": {"$eq": item_type}})
@@ -458,17 +458,17 @@ class PatternStore:
         if min_score is not None:
             where_clauses.append({"score": {"$gte": min_score}})
 
-        where = None
+        where: dict[str, Any] | None = None
         if len(where_clauses) == 1:
             where = where_clauses[0]
         elif len(where_clauses) > 1:
             where = {"$and": where_clauses}
 
         # Generate query embedding
-        query_embedding = self.model.encode(query).tolist()
+        query_embedding = [float(x) for x in self.model.encode(query).tolist()]
 
         # Search
-        results = self._collection.query(
+        results = cast(Any, self._collection).query(
             query_embeddings=[query_embedding],
             n_results=n_results,
             where=where,
@@ -485,6 +485,13 @@ class PatternStore:
                 # Convert distance to similarity (cosine distance: 0 = identical)
                 similarity = 1 - distance
 
+                intents_raw = metadata.get("intents")
+                intents = (
+                    intents_raw.split(",")
+                    if isinstance(intents_raw, str) and intents_raw
+                    else []
+                )
+
                 items.append({
                     "id": doc_id,
                     "similarity": round(similarity, 4),
@@ -493,7 +500,7 @@ class PatternStore:
                     "path": metadata.get("path", ""),
                     "pack": metadata.get("pack", ""),
                     "score": metadata.get("score", 0),
-                    "intents": metadata.get("intents", "").split(",") if metadata.get("intents") else [],
+                    "intents": intents,
                 })
 
         return items
@@ -503,12 +510,12 @@ class PatternStore:
         count = self._collection.count()
 
         # Get type breakdown
-        playbook_count = len(self._collection.get(
+        playbook_count = len(cast(Any, self._collection).get(
             where={"type": {"$eq": "playbook"}},
             include=[],
         )["ids"])
 
-        script_count = len(self._collection.get(
+        script_count = len(cast(Any, self._collection).get(
             where={"type": {"$eq": "script"}},
             include=[],
         )["ids"])

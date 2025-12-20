@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 
 # RAG tools (optional - requires chromadb and sentence-transformers)
 RAG_AVAILABLE = False
-RAG_TOOLS = []
-RAG_HANDLERS = {}
+RAG_TOOLS: list[Tool] = []
+RAG_HANDLERS: dict[str, Any] = {}
 
 try:
     from .rag.tools import RAG_TOOLS, RAG_HANDLERS
@@ -401,7 +401,7 @@ TOOLS = [
 ]
 
 
-@server.list_tools()
+@server.list_tools()  # type: ignore[misc]
 async def list_tools() -> list[Tool]:
     """Return available tools."""
     all_tools = TOOLS.copy()
@@ -410,7 +410,7 @@ async def list_tools() -> list[Tool]:
     return all_tools
 
 
-@server.call_tool()
+@server.call_tool()  # type: ignore[misc]
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Execute a tool and return results."""
 
@@ -583,7 +583,7 @@ async def handle_upload_content(args: dict[str, Any]) -> dict[str, Any]:
         acknowledged=args.get("acknowledge_insecure_risk", False),
     )
     if not can_proceed:
-        return _error_result(error_msg)
+        return _error_result(error_msg or "Insecure flag requires acknowledgment.")
 
     cmd = ["upload", "-i", input_path]
     if args.get("insecure"):
@@ -616,7 +616,7 @@ async def handle_list_files(args: dict[str, Any]) -> dict[str, Any]:
         acknowledged=args.get("acknowledge_insecure_risk", False),
     )
     if not can_proceed:
-        return _error_result(error_msg)
+        return _error_result(error_msg or "Insecure flag requires acknowledgment.")
 
     cmd = ["download", "-lf"]
     if output_path := args.get("output_path"):
@@ -811,4 +811,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
