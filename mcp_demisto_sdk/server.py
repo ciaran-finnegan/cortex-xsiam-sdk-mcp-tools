@@ -171,13 +171,11 @@ TOOLS = [
     ),
     Tool(
         name="lint_content",
-        description="Run code quality checks (pylint, mypy, pytest)",
+        description="Run XSOAR linter code quality checks on content",
         inputSchema={
             "type": "object",
             "properties": {
-                "input_path": {"type": "string", "description": "Path to content file or directory"},
-                "docker": {"type": "boolean", "description": "Run in Docker container"},
-                "test": {"type": "boolean", "description": "Run unit tests"}
+                "input_path": {"type": "string", "description": "Path to content file or directory"}
             },
             "required": ["input_path"]
         }
@@ -452,11 +450,7 @@ async def handle_validate_content(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_lint_content(args: dict[str, Any]) -> dict[str, Any]:
     """Handle lint_content command."""
-    cmd = ["lint", "-i", args["input_path"]]
-    if args.get("docker"):
-        cmd.append("-d")
-    if args.get("test"):
-        cmd.append("-t")
+    cmd = ["xsoar-lint", args["input_path"]]
     return run_sdk_command(cmd)
 
 
