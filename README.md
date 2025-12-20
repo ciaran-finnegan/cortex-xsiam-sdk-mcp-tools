@@ -89,8 +89,17 @@ xsiam-build-index --source ~/content
 When you search for patterns, the tools return metadata (name, description, pack). To also fetch the **full source code** (YAML, Python, XQL), set the path to your local clone of the [demisto/content](https://github.com/demisto/content) repository:
 
 ```bash
-# Add to ~/.zshrc (or ~/.bashrc)
-export DEMISTO_SDK_CONTENT_PATH="$HOME/content"
+# Clone the official content repo (if you haven't already)
+git clone https://github.com/demisto/content.git ~/Documents/Dev/content
+
+# Add to ~/.zshrc (or ~/.bashrc) - adjust path to your clone location
+export DEMISTO_SDK_CONTENT_PATH="$HOME/Documents/Dev/content"
+```
+
+Keep your clone updated to get the latest patterns:
+
+```bash
+cd ~/Documents/Dev/content && git pull
 ```
 
 This enables prompts like: *"Find playbooks that enrich IP addresses and show me the full YAML"*
