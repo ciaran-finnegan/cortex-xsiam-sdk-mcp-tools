@@ -34,6 +34,15 @@ ENV/
 *.swo
 *~
 
+# LLM/AI IDE artifacts
+CLAUDE.md
+claude.md
+AGENTS.md
+Agents.md
+.cursor/
+.cursorrules
+.cursorignore
+
 # Testing
 .tox/
 .nox/
@@ -57,4 +66,3 @@ pip-log.txt
 
 # Scratch / temp
 _tmp/
-
