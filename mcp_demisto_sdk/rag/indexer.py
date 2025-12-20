@@ -124,7 +124,11 @@ def load_json_file(
 
     try:
         with path.open("r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+        if not isinstance(data, dict):
+            logger.debug(f"JSON file did not contain a dict: {path}")
+            return None
+        return data
     except json.JSONDecodeError as e:
         logger.warning(f"JSON parse error in {path}: {e}")
         return None
@@ -170,11 +174,11 @@ def parse_playbook(path: Path, pack_name: str) -> dict[str, Any] | None:
                     subplaybooks.append({"name": pb_name})
 
     # Count task types
-    task_counts = {}
+    task_counts: dict[str, int] = {}
     if isinstance(tasks, dict):
         for task in tasks.values():
             if isinstance(task, dict):
-                task_type = task.get("type", "unknown")
+                task_type = str(task.get("type", "unknown"))
                 task_counts[task_type] = task_counts.get(task_type, 0) + 1
 
     return {
@@ -501,12 +505,12 @@ def index_from_content_repo(
     }
 
     # Collect all items by type
-    playbooks = []
-    scripts = []
-    integrations = []
-    classifiers = []
-    mappers = []
-    xql_rules = []
+    playbooks: list[dict[str, Any]] = []
+    scripts: list[dict[str, Any]] = []
+    integrations: list[dict[str, Any]] = []
+    classifiers: list[dict[str, Any]] = []
+    mappers: list[dict[str, Any]] = []
+    xql_rules: list[dict[str, Any]] = []
 
     for pack_dir in packs_root.iterdir():
         if not pack_dir.is_dir():

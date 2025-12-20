@@ -169,8 +169,10 @@ See [docs/MCP_CLIENTS.md](docs/MCP_CLIENTS.md) for setup instructions.
 ```bash
 source .venv/bin/activate
 pip install -e ".[dev]"
+pre-commit install
+ruff check mcp_demisto_sdk tests
+mypy mcp_demisto_sdk
 pytest
-ruff check mcp_demisto_sdk
 ```
 
 ## Related Resources

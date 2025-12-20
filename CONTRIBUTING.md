@@ -22,11 +22,18 @@ pip install -e ".[dev]"
 - Use type hints throughout
 - Run `ruff check .` before committing
 - Run `mypy mcp_demisto_sdk` for type checking
+- Optional: install pre-commit hooks with `pre-commit install` (runs ruff + mypy on commit)
 
 ### Testing
 
 ```bash
 pytest tests/
+```
+
+### Local Checks
+
+```bash
+pre-commit run --all-files
 ```
 
 ### Adding New Tools
@@ -52,4 +59,3 @@ pytest tests/
 ## Licence
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
-

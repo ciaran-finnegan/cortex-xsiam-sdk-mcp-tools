@@ -5,20 +5,13 @@ Provides specialized search functions for different content types
 and can optionally fetch full content from source files.
 """
 
-import json
 import logging
 import os
 from pathlib import Path
 from typing import Any
 
-try:
-    import yaml
-    YAML_AVAILABLE = True
-except ImportError:
-    YAML_AVAILABLE = False
-
 from ..security import safe_resolve_path
-from .store import PatternStore, get_default_db_path
+from .store import PatternStore
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +32,7 @@ class PatternSearch:
             content_root: Path to content repo for fetching full files
         """
         self.store = store or PatternStore()
+        self.content_root: Path | None
 
         # Resolve content root for fetching full files
         if content_root:

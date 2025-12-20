@@ -2,19 +2,22 @@
 MCP tool definitions and handlers for RAG pattern search.
 """
 
-import json
 from typing import Any
 
-try:
-    from mcp.types import Tool, TextContent
-    MCP_AVAILABLE = True
-except ImportError:
-    MCP_AVAILABLE = False
-    Tool = None
-    TextContent = None
-
 from .search import PatternSearch
-from .store import PatternStore
+
+Tool: Any = None
+TextContent: Any = None
+MCP_AVAILABLE = False
+
+try:
+    from mcp.types import Tool as MCPTool, TextContent as MCPTextContent
+except ImportError:
+    pass
+else:
+    MCP_AVAILABLE = True
+    Tool = MCPTool
+    TextContent = MCPTextContent
 
 # Lazy-initialized search instance
 _search_instance: PatternSearch | None = None
