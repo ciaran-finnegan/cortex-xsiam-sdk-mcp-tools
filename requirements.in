@@ -1,0 +1,13 @@
+# Core dependencies from pyproject.toml
+# Used by pip-compile to generate requirements.lock
+#
+# To generate a lockfile:
+#   pip install pip-tools
+#   pip-compile requirements.in -o requirements.lock --generate-hashes
+#
+# Requires Python 3.10+ (same as the project)
+
+mcp>=1.0.0
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+PyYAML>=6.0

@@ -6,6 +6,7 @@ and can optionally fetch full content from source files.
 """
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,10 @@ try:
 except ImportError:
     YAML_AVAILABLE = False
 
+from ..security import safe_resolve_path
 from .store import PatternStore, get_default_db_path
+
+logger = logging.getLogger(__name__)
 
 
 class PatternSearch:
@@ -328,21 +332,38 @@ class PatternSearch:
         return self.store.get_stats()
 
     def _fetch_content(self, path: str) -> str | None:
-        """Fetch full content from a file path."""
+        """Fetch full content from a file path within content_root.
+
+        Uses safe path resolution to prevent path traversal attacks.
+        Only files within content_root can be accessed.
+        """
         if not path or not self.content_root:
             return None
 
-        # Handle both absolute and relative paths
-        file_path = Path(path)
-        if not file_path.is_absolute():
-            file_path = self.content_root / path
+        # Safely resolve path, ensuring it's within content_root
+        file_path = safe_resolve_path(path, self.content_root)
+        if file_path is None:
+            logger.warning(f"Path validation failed for: {path}")
+            return None
 
         if not file_path.exists():
+            logger.debug(f"Content file not found: {file_path}")
+            return None
+
+        if not file_path.is_file():
+            logger.warning(f"Path is not a file: {file_path}")
             return None
 
         try:
             return file_path.read_text(encoding="utf-8")
-        except Exception:
+        except PermissionError:
+            logger.warning(f"Permission denied reading content: {file_path}")
+            return None
+        except UnicodeDecodeError:
+            logger.warning(f"Unicode decode error in: {file_path}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error reading {file_path}: {type(e).__name__}: {e}")
             return None
 
 

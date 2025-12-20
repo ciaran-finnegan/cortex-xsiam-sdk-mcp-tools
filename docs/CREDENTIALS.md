@@ -89,3 +89,53 @@ XSIAM_AUTH_ID=YOUR_AUTH_ID
 ```bash
 source .env
 ```
+
+## Security Considerations for Remote Operations
+
+### Production-Impacting Tools
+
+The following tools can modify your XSIAM/XSOAR tenant and should be used with caution:
+
+| Tool | Risk Level | What It Does |
+|------|------------|--------------|
+| `upload_content` | **HIGH** | Deploys content to your tenant - can overwrite existing content |
+| `run_command` | **HIGH** | Executes commands directly on your tenant |
+| `run_playbook` | **HIGH** | Triggers playbook automation |
+| `download_content` | LOW | Downloads content from tenant (read-only) |
+| `list_files` | LOW | Lists available content (read-only) |
+
+### Recommendations
+
+1. **Use separate credentials for development and production**
+   - Create a dedicated API key for development with limited scope
+   - Never use production credentials during content development
+
+2. **Test in staging first**
+   - Deploy and test content in a non-production environment
+   - Validate behavior before production deployment
+
+3. **Review before upload**
+   - Always review generated or modified content before uploading
+   - Use `validate_content` and `lint_content` before deployment
+
+4. **Enable audit logging**
+   - Configure audit logging in your XSIAM tenant
+   - Monitor for unexpected API activity
+
+5. **Principle of least privilege**
+   - Request only the API permissions you need
+   - Avoid using Instance Administrator keys for routine operations
+
+### SSL Verification
+
+SSL certificate verification is enabled by default for all remote operations. This protects your credentials from man-in-the-middle attacks.
+
+**Do not disable SSL verification (`insecure` flag) unless:**
+- You are using a self-signed certificate in a controlled environment
+- You understand and accept the security risks
+- You have set `acknowledge_insecure_risk: true` explicitly
+
+If you need to use self-signed certificates, consider:
+1. Adding the CA certificate to your system trust store
+2. Setting `REQUESTS_CA_BUNDLE` to point to your certificate
+3. Using a proper certificate from a trusted CA

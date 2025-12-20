@@ -7,6 +7,7 @@ embeddings for semantic search.
 
 import argparse
 import json
+import logging
 import re
 import sys
 from pathlib import Path
@@ -19,6 +20,8 @@ except ImportError:
     YAML_AVAILABLE = False
 
 from .store import PatternStore, get_default_db_path
+
+logger = logging.getLogger(__name__)
 
 
 # Intent detection rules (from content repo's index_playbooks.py)
@@ -60,24 +63,79 @@ def infer_intents(text: str) -> list[str]:
     return sorted(intents)
 
 
-def load_yaml_file(path: Path) -> dict[str, Any] | None:
-    """Load a YAML file safely."""
+def load_yaml_file(
+    path: Path, follow_symlinks: bool = False
+) -> dict[str, Any] | None:
+    """Load a YAML file safely with error logging.
+
+    Args:
+        path: Path to the YAML file
+        follow_symlinks: If False, reject symlinked files
+
+    Returns:
+        Parsed YAML data as dict, or None on error
+    """
     if not YAML_AVAILABLE:
+        logger.debug("YAML library not available")
         return None
+
+    # Check for symlinks if not allowed
+    if not follow_symlinks and path.is_symlink():
+        logger.warning(f"Symlink rejected: {path}")
+        return None
+
     try:
         with path.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
-        return data if isinstance(data, dict) else None
-    except Exception:
+        if not isinstance(data, dict):
+            logger.debug(f"YAML file did not contain a dict: {path}")
+            return None
+        return data
+    except yaml.YAMLError as e:
+        logger.warning(f"YAML parse error in {path}: {e}")
+        return None
+    except PermissionError:
+        logger.warning(f"Permission denied reading: {path}")
+        return None
+    except FileNotFoundError:
+        logger.debug(f"File not found: {path}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error reading {path}: {type(e).__name__}: {e}")
         return None
 
 
-def load_json_file(path: Path) -> dict[str, Any] | None:
-    """Load a JSON file safely."""
+def load_json_file(
+    path: Path, follow_symlinks: bool = False
+) -> dict[str, Any] | None:
+    """Load a JSON file safely with error logging.
+
+    Args:
+        path: Path to the JSON file
+        follow_symlinks: If False, reject symlinked files
+
+    Returns:
+        Parsed JSON data as dict, or None on error
+    """
+    # Check for symlinks if not allowed
+    if not follow_symlinks and path.is_symlink():
+        logger.warning(f"Symlink rejected: {path}")
+        return None
+
     try:
         with path.open("r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+    except json.JSONDecodeError as e:
+        logger.warning(f"JSON parse error in {path}: {e}")
+        return None
+    except PermissionError:
+        logger.warning(f"Permission denied reading: {path}")
+        return None
+    except FileNotFoundError:
+        logger.debug(f"File not found: {path}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error reading {path}: {type(e).__name__}: {e}")
         return None
 
 
@@ -249,11 +307,35 @@ def parse_mapper(path: Path, pack_name: str) -> dict[str, Any] | None:
     }
 
 
-def parse_xql_rule(path: Path, pack_name: str, rule_type: str) -> dict[str, Any] | None:
-    """Parse an XQL parsing or modeling rule (.xif file)."""
+def parse_xql_rule(
+    path: Path, pack_name: str, rule_type: str, follow_symlinks: bool = False
+) -> dict[str, Any] | None:
+    """Parse an XQL parsing or modeling rule (.xif file).
+
+    Args:
+        path: Path to the XQL file
+        pack_name: Name of the containing pack
+        rule_type: Type of rule (parsing or modeling)
+        follow_symlinks: If False, reject symlinked files
+
+    Returns:
+        Parsed rule data, or None on error
+    """
+    # Check for symlinks if not allowed
+    if not follow_symlinks and path.is_symlink():
+        logger.warning(f"Symlink rejected: {path}")
+        return None
+
     try:
         content = path.read_text(encoding="utf-8")
-    except Exception:
+    except PermissionError:
+        logger.warning(f"Permission denied reading: {path}")
+        return None
+    except FileNotFoundError:
+        logger.debug(f"File not found: {path}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error reading {path}: {type(e).__name__}: {e}")
         return None
 
     # Extract rule name from content or filename
@@ -284,6 +366,7 @@ def index_from_content_repo(
     store: PatternStore,
     include_deprecated: bool = False,
     max_items: int = 0,
+    follow_symlinks: bool = False,
 ) -> dict[str, int]:
     """
     Index content directly from a content repository.
@@ -293,6 +376,7 @@ def index_from_content_repo(
         store: PatternStore instance
         include_deprecated: Include deprecated content
         max_items: Max items per type (0 = unlimited)
+        follow_symlinks: If False, skip symlinked files and directories
 
     Returns:
         Counts by content type
@@ -323,6 +407,11 @@ def index_from_content_repo(
         if not pack_dir.is_dir():
             continue
 
+        # Skip symlinked pack directories unless allowed
+        if not follow_symlinks and pack_dir.is_symlink():
+            logger.warning(f"Skipping symlinked pack directory: {pack_dir}")
+            continue
+
         pack_name = pack_dir.name
 
         # Skip deprecated packs unless requested
@@ -346,6 +435,10 @@ def index_from_content_repo(
                 if max_items and len(scripts) >= max_items:
                     break
                 if script_dir.is_dir():
+                    # Skip symlinked script directories
+                    if not follow_symlinks and script_dir.is_symlink():
+                        logger.debug(f"Skipping symlinked script directory: {script_dir}")
+                        continue
                     yml_files = list(script_dir.glob("*.yml"))
                     for yml_path in yml_files:
                         if item := parse_script(yml_path, pack_name):
@@ -360,6 +453,10 @@ def index_from_content_repo(
                 if max_items and len(integrations) >= max_items:
                     break
                 if int_dir.is_dir():
+                    # Skip symlinked integration directories
+                    if not follow_symlinks and int_dir.is_symlink():
+                        logger.debug(f"Skipping symlinked integration directory: {int_dir}")
+                        continue
                     yml_files = list(int_dir.glob("*.yml"))
                     for yml_path in yml_files:
                         if item := parse_integration(yml_path, pack_name):
@@ -389,7 +486,9 @@ def index_from_content_repo(
             for xif_path in parsing_dir.rglob("*.xif"):
                 if max_items and len(xql_rules) >= max_items:
                     break
-                if item := parse_xql_rule(xif_path, pack_name, "parsing"):
+                if item := parse_xql_rule(
+                    xif_path, pack_name, "parsing", follow_symlinks=follow_symlinks
+                ):
                     xql_rules.append(item)
 
         # Modeling Rules (XQL)
@@ -398,21 +497,31 @@ def index_from_content_repo(
             for xif_path in modeling_dir.rglob("*.xif"):
                 if max_items and len(xql_rules) >= max_items:
                     break
-                if item := parse_xql_rule(xif_path, pack_name, "modeling"):
+                if item := parse_xql_rule(
+                    xif_path, pack_name, "modeling", follow_symlinks=follow_symlinks
+                ):
                     xql_rules.append(item)
 
-    # Add items to store
-    counts["playbooks"] = store.add_items(playbooks, "playbook")
-    counts["scripts"] = store.add_items(scripts, "script")
-    counts["integrations"] = store.add_items(integrations, "integration")
-    counts["classifiers"] = store.add_items(classifiers, "classifier")
-    counts["mappers"] = store.add_items(mappers, "mapper")
+    # Add items to store (pass content_root to store relative paths)
+    counts["playbooks"] = store.add_items(playbooks, "playbook", content_root=content_root)
+    counts["scripts"] = store.add_items(scripts, "script", content_root=content_root)
+    counts["integrations"] = store.add_items(
+        integrations, "integration", content_root=content_root
+    )
+    counts["classifiers"] = store.add_items(
+        classifiers, "classifier", content_root=content_root
+    )
+    counts["mappers"] = store.add_items(mappers, "mapper", content_root=content_root)
 
     # XQL rules get special type
     parsing_rules = [r for r in xql_rules if r.get("rule_type") == "parsing"]
     modeling_rules = [r for r in xql_rules if r.get("rule_type") == "modeling"]
-    counts["parsing_rules"] = store.add_items(parsing_rules, "parsing_rule")
-    counts["modeling_rules"] = store.add_items(modeling_rules, "modeling_rule")
+    counts["parsing_rules"] = store.add_items(
+        parsing_rules, "parsing_rule", content_root=content_root
+    )
+    counts["modeling_rules"] = store.add_items(
+        modeling_rules, "modeling_rule", content_root=content_root
+    )
 
     return counts
 
@@ -498,6 +607,11 @@ def main() -> None:
         action="store_true",
         help="Clear existing index before building",
     )
+    parser.add_argument(
+        "--follow-symlinks",
+        action="store_true",
+        help="Follow symlinks when indexing (disabled by default for security)",
+    )
 
     args = parser.parse_args()
 
@@ -523,11 +637,14 @@ def main() -> None:
     elif (source / "Packs").exists():
         # Index from content repo
         print(f"Indexing from content repo: {source}")
+        if args.follow_symlinks:
+            print("WARNING: Following symlinks is enabled. This may pose security risks.")
         counts = index_from_content_repo(
             source,
             store,
             include_deprecated=args.include_deprecated,
             max_items=args.max_items,
+            follow_symlinks=args.follow_symlinks,
         )
     else:
         print(f"Error: {source} is not a valid content repo or JSON index", file=sys.stderr)

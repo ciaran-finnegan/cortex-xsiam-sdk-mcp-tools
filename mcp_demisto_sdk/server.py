@@ -10,6 +10,7 @@ Provides LLM coding assistants with:
 
 import asyncio
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -24,6 +25,15 @@ try:
 except ImportError:
     print("MCP SDK not installed. Install with: pip install mcp", file=sys.stderr)
     sys.exit(1)
+
+from .security import (
+    check_insecure_flag,
+    validate_name,
+    validate_path_argument,
+    validate_sdk_binary,
+)
+
+logger = logging.getLogger(__name__)
 
 # RAG tools (optional - requires chromadb and sentence-transformers)
 RAG_AVAILABLE = False
@@ -69,12 +79,29 @@ def _resolve_demisto_sdk_content_root(explicit_cwd: str | None) -> Path:
 
 
 def run_sdk_command(args: list[str], cwd: str | None = None) -> dict[str, Any]:
-    """Execute a demisto-sdk command and return results."""
+    """Execute a demisto-sdk command and return results.
+
+    Security: The SDK binary is validated against an allowlist to prevent
+    arbitrary code execution via the DEMISTO_SDK_BIN environment variable.
+    """
     try:
         content_root = _resolve_demisto_sdk_content_root(cwd)
         env = os.environ.copy()
         env.setdefault("DEMISTO_SDK_CONTENT_PATH", str(content_root))
-        sdk_bin = env.get("DEMISTO_SDK_BIN", "demisto-sdk")
+
+        # Validate the SDK binary
+        sdk_bin_input = env.get("DEMISTO_SDK_BIN", "demisto-sdk")
+        sdk_bin = validate_sdk_binary(sdk_bin_input)
+
+        if sdk_bin is None:
+            logger.warning(f"Invalid SDK binary rejected: {sdk_bin_input}")
+            return {
+                "success": False,
+                "stdout": "",
+                "stderr": f"Invalid or untrusted SDK binary: {sdk_bin_input}. "
+                "Only 'demisto-sdk' is allowed.",
+                "returncode": -1,
+            }
 
         result = subprocess.run(
             [sdk_bin] + args,
@@ -82,27 +109,28 @@ def run_sdk_command(args: list[str], cwd: str | None = None) -> dict[str, Any]:
             text=True,
             cwd=str(content_root),
             env=env,
-            timeout=300  # 5 minute timeout
+            timeout=300,  # 5 minute timeout
         )
         return {
             "success": result.returncode == 0,
             "stdout": result.stdout,
             "stderr": result.stderr,
-            "returncode": result.returncode
+            "returncode": result.returncode,
         }
     except subprocess.TimeoutExpired:
         return {
             "success": False,
             "stdout": "",
             "stderr": "Command timed out after 300 seconds",
-            "returncode": -1
+            "returncode": -1,
         }
     except Exception as e:
+        logger.error(f"SDK command failed: {type(e).__name__}: {e}")
         return {
             "success": False,
             "stdout": "",
             "stderr": str(e),
-            "returncode": -1
+            "returncode": -1,
         }
 
 
@@ -200,10 +228,17 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "input_path": {"type": "string", "description": "Path to content to upload"},
-                "insecure": {"type": "boolean", "description": "Skip SSL verification"}
+                "insecure": {
+                    "type": "boolean",
+                    "description": "Skip SSL verification (DANGEROUS: exposes credentials to MITM attacks)",
+                },
+                "acknowledge_insecure_risk": {
+                    "type": "boolean",
+                    "description": "Required if insecure=true. Confirms you accept the security risk.",
+                },
             },
-            "required": ["input_path"]
-        }
+            "required": ["input_path"],
+        },
     ),
     Tool(
         name="download_content",
@@ -228,7 +263,14 @@ TOOLS = [
                     "type": "string",
                     "description": "Optional output path (demisto-sdk -o). Listing does not write content.",
                 },
-                "insecure": {"type": "boolean", "description": "Skip certificate validation."},
+                "insecure": {
+                    "type": "boolean",
+                    "description": "Skip SSL verification (DANGEROUS: exposes credentials to MITM attacks)",
+                },
+                "acknowledge_insecure_risk": {
+                    "type": "boolean",
+                    "description": "Required if insecure=true. Confirms you accept the security risk.",
+                },
             },
         },
     ),
@@ -410,31 +452,81 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
 
+def _error_result(message: str) -> dict[str, Any]:
+    """Create a standardized error result."""
+    return {
+        "success": False,
+        "stdout": "",
+        "stderr": message,
+        "returncode": -1,
+    }
+
+
 async def handle_init_pack(args: dict[str, Any]) -> dict[str, Any]:
     """Handle init_pack command."""
-    cmd = ["init", "--pack", "-n", args["name"]]
+    name = validate_name(args.get("name", ""))
+    if not name:
+        return _error_result(
+            "Invalid pack name. Use only alphanumeric characters, underscores, and hyphens."
+        )
+
+    cmd = ["init", "--pack", "-n", name]
     if output_dir := args.get("output_dir"):
-        cmd.extend(["-o", output_dir])
+        validated_dir = validate_path_argument(output_dir)
+        if not validated_dir:
+            return _error_result("Invalid output directory path.")
+        cmd.extend(["-o", validated_dir])
     return run_sdk_command(cmd)
 
 
 async def handle_init_integration(args: dict[str, Any]) -> dict[str, Any]:
     """Handle init_integration command."""
-    cmd = ["init", "--integration", "-n", args["name"], "-p", args["pack"]]
+    name = validate_name(args.get("name", ""))
+    if not name:
+        return _error_result(
+            "Invalid integration name. Use only alphanumeric characters, underscores, and hyphens."
+        )
+
+    pack = validate_name(args.get("pack", ""))
+    if not pack:
+        return _error_result(
+            "Invalid pack name. Use only alphanumeric characters, underscores, and hyphens."
+        )
+
+    cmd = ["init", "--integration", "-n", name, "-p", pack]
     if template := args.get("template"):
-        cmd.extend(["--template", template])
+        validated_template = validate_name(template)
+        if not validated_template:
+            return _error_result("Invalid template name.")
+        cmd.extend(["--template", validated_template])
     return run_sdk_command(cmd)
 
 
 async def handle_init_script(args: dict[str, Any]) -> dict[str, Any]:
     """Handle init_script command."""
-    cmd = ["init", "--script", "-n", args["name"], "-p", args["pack"]]
+    name = validate_name(args.get("name", ""))
+    if not name:
+        return _error_result(
+            "Invalid script name. Use only alphanumeric characters, underscores, and hyphens."
+        )
+
+    pack = validate_name(args.get("pack", ""))
+    if not pack:
+        return _error_result(
+            "Invalid pack name. Use only alphanumeric characters, underscores, and hyphens."
+        )
+
+    cmd = ["init", "--script", "-n", name, "-p", pack]
     return run_sdk_command(cmd)
 
 
 async def handle_format_content(args: dict[str, Any]) -> dict[str, Any]:
     """Handle format_content command."""
-    cmd = ["format", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["format", "-i", input_path]
     if args.get("assume_yes", True):
         cmd.append("-y")
     return run_sdk_command(cmd)
@@ -442,7 +534,11 @@ async def handle_format_content(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_validate_content(args: dict[str, Any]) -> dict[str, Any]:
     """Handle validate_content command."""
-    cmd = ["validate", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["validate", "-i", input_path]
     if args.get("use_git"):
         cmd.append("-g")
     return run_sdk_command(cmd)
@@ -450,15 +546,26 @@ async def handle_validate_content(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_lint_content(args: dict[str, Any]) -> dict[str, Any]:
     """Handle lint_content command."""
-    cmd = ["xsoar-lint", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["xsoar-lint", input_path]
     return run_sdk_command(cmd)
 
 
 async def handle_generate_docs(args: dict[str, Any]) -> dict[str, Any]:
     """Handle generate_docs command."""
-    cmd = ["generate-docs", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["generate-docs", "-i", input_path]
     if output_path := args.get("output_path"):
-        cmd.extend(["-o", output_path])
+        validated_output = validate_path_argument(output_path)
+        if not validated_output:
+            return _error_result("Invalid output path.")
+        cmd.extend(["-o", validated_output])
     if args.get("force"):
         cmd.append("-f")
     return run_sdk_command(cmd)
@@ -466,7 +573,19 @@ async def handle_generate_docs(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_upload_content(args: dict[str, Any]) -> dict[str, Any]:
     """Handle upload_content command."""
-    cmd = ["upload", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    # Check insecure flag with acknowledgment requirement
+    can_proceed, error_msg = check_insecure_flag(
+        insecure=args.get("insecure", False),
+        acknowledged=args.get("acknowledge_insecure_risk", False),
+    )
+    if not can_proceed:
+        return _error_result(error_msg)
+
+    cmd = ["upload", "-i", input_path]
     if args.get("insecure"):
         cmd.append("--insecure")
     return run_sdk_command(cmd)
@@ -474,9 +593,16 @@ async def handle_upload_content(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_download_content(args: dict[str, Any]) -> dict[str, Any]:
     """Handle download_content command."""
-    cmd = ["download", "-o", args["output_path"]]
+    output_path = validate_path_argument(args.get("output_path", ""))
+    if not output_path:
+        return _error_result("Invalid output path.")
+
+    cmd = ["download", "-o", output_path]
     if input_path := args.get("input_path"):
-        cmd.extend(["-i", input_path])
+        validated_input = validate_path_argument(input_path)
+        if not validated_input:
+            return _error_result("Invalid input path.")
+        cmd.extend(["-i", validated_input])
     if args.get("all_content"):
         cmd.append("-a")
     return run_sdk_command(cmd)
@@ -484,9 +610,20 @@ async def handle_download_content(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_list_files(args: dict[str, Any]) -> dict[str, Any]:
     """Handle list_files command (read-only)."""
+    # Check insecure flag with acknowledgment requirement
+    can_proceed, error_msg = check_insecure_flag(
+        insecure=args.get("insecure", False),
+        acknowledged=args.get("acknowledge_insecure_risk", False),
+    )
+    if not can_proceed:
+        return _error_result(error_msg)
+
     cmd = ["download", "-lf"]
     if output_path := args.get("output_path"):
-        cmd.extend(["-o", output_path])
+        validated_output = validate_path_argument(output_path)
+        if not validated_output:
+            return _error_result("Invalid output path.")
+        cmd.extend(["-o", validated_output])
     if args.get("insecure"):
         cmd.append("--insecure")
     return run_sdk_command(cmd)
@@ -494,7 +631,11 @@ async def handle_list_files(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_find_dependencies(args: dict[str, Any]) -> dict[str, Any]:
     """Handle find_dependencies command."""
-    cmd = ["find-dependencies", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["find-dependencies", "-i", input_path]
     if args.get("update_pack_metadata"):
         cmd.append("--update-pack-metadata")
     return run_sdk_command(cmd)
@@ -502,55 +643,110 @@ async def handle_find_dependencies(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_update_release_notes(args: dict[str, Any]) -> dict[str, Any]:
     """Handle update_release_notes command."""
-    cmd = ["update-release-notes", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["update-release-notes", "-i", input_path]
     if version := args.get("version"):
+        # Validate version is a safe value
+        if version not in ("major", "minor", "revision"):
+            return _error_result("Invalid version. Must be: major, minor, or revision.")
         cmd.extend(["-v", version])
     if text := args.get("text"):
+        # Text is passed as-is to demisto-sdk, which handles it safely
         cmd.extend(["--text", text])
     return run_sdk_command(cmd)
 
 
 async def handle_zip_packs(args: dict[str, Any]) -> dict[str, Any]:
     """Handle zip_packs command."""
-    cmd = ["zip-packs", "-i", args["input_path"], "-o", args["output_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    output_path = validate_path_argument(args.get("output_path", ""))
+    if not output_path:
+        return _error_result("Invalid output path.")
+
+    cmd = ["zip-packs", "-i", input_path, "-o", output_path]
     return run_sdk_command(cmd)
 
 
 async def handle_generate_unit_tests(args: dict[str, Any]) -> dict[str, Any]:
     """Handle generate_unit_tests command."""
-    cmd = ["generate-unit-tests", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["generate-unit-tests", "-i", input_path]
     if output_path := args.get("output_path"):
-        cmd.extend(["-o", output_path])
+        validated_output = validate_path_argument(output_path)
+        if not validated_output:
+            return _error_result("Invalid output path.")
+        cmd.extend(["-o", validated_output])
     return run_sdk_command(cmd)
 
 
 async def handle_generate_test_playbook(args: dict[str, Any]) -> dict[str, Any]:
     """Handle generate_test_playbook command."""
-    cmd = ["generate-test-playbook", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["generate-test-playbook", "-i", input_path]
     if output_path := args.get("output_path"):
-        cmd.extend(["-o", output_path])
+        validated_output = validate_path_argument(output_path)
+        if not validated_output:
+            return _error_result("Invalid output path.")
+        cmd.extend(["-o", validated_output])
     return run_sdk_command(cmd)
 
 
 async def handle_generate_outputs(args: dict[str, Any]) -> dict[str, Any]:
     """Handle generate_outputs command."""
-    cmd = ["generate-outputs", "-i", args["input_path"], "-c", args["command"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    # Command name should be validated as a safe name
+    command = validate_name(args.get("command", ""))
+    if not command:
+        return _error_result(
+            "Invalid command name. Use only alphanumeric characters, underscores, and hyphens."
+        )
+
+    cmd = ["generate-outputs", "-i", input_path, "-c", command]
     if json_path := args.get("json_path"):
-        cmd.extend(["-j", json_path])
+        validated_json = validate_path_argument(json_path)
+        if not validated_json:
+            return _error_result("Invalid JSON path.")
+        cmd.extend(["-j", validated_json])
     return run_sdk_command(cmd)
 
 
 async def handle_run_command(args: dict[str, Any]) -> dict[str, Any]:
     """Handle run_command command."""
-    cmd = ["run", "-q", args["command"]]
+    # Command is passed to demisto-sdk which handles it
+    # We do basic validation to prevent obvious issues
+    command = args.get("command", "")
+    if not command:
+        return _error_result("Command is required.")
+
+    cmd = ["run", "-q", command]
     if cmd_args := args.get("args"):
+        # Args are passed as JSON string to demisto-sdk
         cmd.extend(["--args", cmd_args])
     return run_sdk_command(cmd)
 
 
 async def handle_run_playbook(args: dict[str, Any]) -> dict[str, Any]:
     """Handle run_playbook command."""
-    cmd = ["run-playbook", "-p", args["playbook_id"]]
+    playbook_id = args.get("playbook_id", "")
+    if not playbook_id:
+        return _error_result("Playbook ID is required.")
+
+    cmd = ["run-playbook", "-p", playbook_id]
     if args.get("wait"):
         cmd.append("--wait")
     return run_sdk_command(cmd)
@@ -558,21 +754,45 @@ async def handle_run_playbook(args: dict[str, Any]) -> dict[str, Any]:
 
 async def handle_openapi_codegen(args: dict[str, Any]) -> dict[str, Any]:
     """Handle openapi_codegen command."""
-    cmd = ["openapi-codegen", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["openapi-codegen", "-i", input_path]
     if output_path := args.get("output_path"):
-        cmd.extend(["-o", output_path])
+        validated_output = validate_path_argument(output_path)
+        if not validated_output:
+            return _error_result("Invalid output path.")
+        cmd.extend(["-o", validated_output])
     if name := args.get("name"):
-        cmd.extend(["-n", name])
+        validated_name = validate_name(name)
+        if not validated_name:
+            return _error_result(
+                "Invalid name. Use only alphanumeric characters, underscores, and hyphens."
+            )
+        cmd.extend(["-n", validated_name])
     return run_sdk_command(cmd)
 
 
 async def handle_postman_codegen(args: dict[str, Any]) -> dict[str, Any]:
     """Handle postman_codegen command."""
-    cmd = ["postman-codegen", "-i", args["input_path"]]
+    input_path = validate_path_argument(args.get("input_path", ""))
+    if not input_path:
+        return _error_result("Invalid input path.")
+
+    cmd = ["postman-codegen", "-i", input_path]
     if output_path := args.get("output_path"):
-        cmd.extend(["-o", output_path])
+        validated_output = validate_path_argument(output_path)
+        if not validated_output:
+            return _error_result("Invalid output path.")
+        cmd.extend(["-o", validated_output])
     if name := args.get("name"):
-        cmd.extend(["-n", name])
+        validated_name = validate_name(name)
+        if not validated_name:
+            return _error_result(
+                "Invalid name. Use only alphanumeric characters, underscores, and hyphens."
+            )
+        cmd.extend(["-n", validated_name])
     return run_sdk_command(cmd)
 
 

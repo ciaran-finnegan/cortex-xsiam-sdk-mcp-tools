@@ -26,7 +26,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
@@ -35,8 +35,42 @@ jobs:
         run: |
           ruff check mcp_demisto_sdk tests
 
+      - name: Type check (mypy) - security module
+        run: |
+          pip install mypy types-PyYAML
+          mypy mcp_demisto_sdk/security.py --ignore-missing-imports || true
+
       - name: Test (pytest)
         run: |
           pytest -q
+
+  # Generate lockfile for reproducible builds (on Python 3.10)
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Generate lockfile
+        run: |
+          python -m pip install --upgrade pip pip-tools
+          pip-compile requirements.in -o requirements.lock.new --generate-hashes
+          # Show diff if lockfile exists and differs
+          if [ -f requirements.lock ]; then
+            diff requirements.lock requirements.lock.new || echo "Lockfile would be updated"
+          else
+            echo "No existing lockfile - new lockfile generated"
+          fi
+
+      - name: Upload lockfile artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: requirements-lock
+          path: requirements.lock.new
 
 

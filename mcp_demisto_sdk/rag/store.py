@@ -6,9 +6,12 @@ Uses sentence-transformers for local embedding generation (no API required).
 """
 
 import hashlib
+import logging
 import os
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 try:
     import chromadb
@@ -128,6 +131,7 @@ class PatternStore:
         items: list[dict[str, Any]],
         item_type: str = "playbook",
         batch_size: int = 100,
+        content_root: Path | None = None,
     ) -> int:
         """
         Add items to the vector store.
@@ -136,6 +140,8 @@ class PatternStore:
             items: List of playbook/script dictionaries from playbook_index.json
             item_type: Type of items ("playbook" or "script")
             batch_size: Number of items to process at once
+            content_root: If provided, store paths relative to this root
+                (prevents leaking absolute paths in metadata)
 
         Returns:
             Number of items added
@@ -169,12 +175,23 @@ class PatternStore:
                 # Generate embedding
                 embedding = self.model.encode(embed_text).tolist()
 
+                # Convert absolute path to relative path if content_root provided
+                stored_path = item_path
+                if item_path and content_root:
+                    try:
+                        abs_path = Path(item_path)
+                        if abs_path.is_absolute():
+                            stored_path = str(abs_path.relative_to(content_root))
+                    except ValueError:
+                        # Path not relative to content_root, store as-is
+                        logger.debug(f"Path not relative to content_root: {item_path}")
+
                 # Prepare metadata (ChromaDB requires flat structure)
                 metadata = {
                     "type": item_type,
                     "id": str(item_id),
                     "name": item.get("name", ""),
-                    "path": item.get("path", ""),
+                    "path": stored_path,
                     "pack": item.get("pack", ""),
                     "score": item.get("score", 0),
                     "deprecated": item.get("deprecated", False),
