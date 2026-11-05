@@ -108,7 +108,7 @@ Without this variable, pattern search still works but returns metadata only.
 
 ### 5. Configure Credentials
 
-See [docs/CREDENTIALS.md](docs/CREDENTIALS.md) for secure credential storage (macOS Keychain, Windows Credential Manager, GitHub Actions secrets).
+See [docs/CREDENTIALS.md](docs/CREDENTIALS.md): 1Password CLI, macOS Keychain, Windows SecretStore or GitHub Actions secrets, injected when the server starts, never a `.env` file.
 
 ### 6. Configure Your MCP Client
 
