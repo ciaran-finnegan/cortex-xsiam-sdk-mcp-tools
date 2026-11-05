@@ -72,8 +72,8 @@ The following tools can modify your XSIAM/XSOAR tenant:
 
 ### Credential Security
 
-1. **Never commit credentials** to version control
-2. **Use credential helpers** (macOS Keychain, Windows Credential Manager)
+1. **Never commit credentials**, and keep them out of `.env` and MCP client config files
+2. **Inject the key at start** from 1Password CLI, the macOS Keychain or Windows SecretStore
 3. **Use short-lived API keys** when possible
 4. **Rotate credentials** regularly
 5. **Use least-privilege** API permissions

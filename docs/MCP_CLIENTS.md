@@ -8,7 +8,7 @@ All examples use the virtual environment Python interpreter. Replace `/path/to/c
 
 ## Notes on environment and demisto-sdk
 
-- **Credentials**: The MCP server expects `DEMISTO_BASE_URL`, `DEMISTO_API_KEY`, and `XSIAM_AUTH_ID` to be available in its environment. See `docs/CREDENTIALS.md`.
+- **Credentials**: The MCP server expects `DEMISTO_BASE_URL`, `DEMISTO_API_KEY`, and `XSIAM_AUTH_ID` in its environment. Client config files are plaintext, so never put the key in an `env` block, start the server through `op run` or a Keychain / SecretStore launcher as in the Cursor example and [CREDENTIALS.md](CREDENTIALS.md). Examples that start Python directly need the credentials already in the client's environment.
 - **demisto-sdk binary**: If you installed `demisto-sdk` in a non-default location (recommended), set:
   - `DEMISTO_SDK_BIN=/absolute/path/to/demisto-sdk`
 - **Content repo layout**: `demisto-sdk` expects a `Packs/` directory. If your working directory is not a content repo, this MCP server will create and use `_tmp/demisto-sdk-content/Packs` automatically.
@@ -34,23 +34,43 @@ Restart Cursor after updating the configuration.
 
 ### Cursor: ensure environment variables are available
 
-If Cursor does not inherit your shell environment (common), run the MCP server via `zsh -lc` and export variables at process start.
-
-The pattern below keeps secrets out of the config by resolving them at runtime (replace the `SECRET_READ_CMD ...` placeholders with your organisation’s preferred secret retrieval mechanism):
+Desktop clients do not inherit your shell environment. Resolve the credentials
+at start with `op run`, which reads the `op://` references in `.env.op` and
+prompts for Touch ID or Windows Hello if 1Password is locked (see
+[CREDENTIALS.md](CREDENTIALS.md)):
 
 ```json
 {
   "mcpServers": {
     "demisto-sdk": {
-      "command": "/bin/zsh",
+      "command": "/opt/homebrew/bin/op",
       "args": [
-        "-lc",
-        "export DEMISTO_BASE_URL=\"$(SECRET_READ_CMD DEMISTO_BASE_URL)\"; export DEMISTO_API_KEY=\"$(SECRET_READ_CMD DEMISTO_API_KEY)\"; export XSIAM_AUTH_ID=\"$(SECRET_READ_CMD XSIAM_AUTH_ID)\"; export DEMISTO_SDK_BIN=\"/absolute/path/to/demisto-sdk\"; exec /path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python -m mcp_demisto_sdk"
-      ]
+        "run",
+        "--env-file=/path/to/cortex-xsiam-sdk-mcp-tools/.env.op",
+        "--",
+        "/path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python",
+        "-m",
+        "mcp_demisto_sdk"
+      ],
+      "env": {
+        "DEMISTO_SDK_BIN": "/absolute/path/to/demisto-sdk"
+      }
     }
   }
 }
 ```
+
+Desktop apps start with a short `PATH`, so use the full path to `op`
+(`/opt/homebrew/bin/op`, `/usr/local/bin/op` or `C:\Program Files\1Password CLI\op.exe`).
+For the macOS Keychain make the wrapper script from CREDENTIALS.md the
+`command`, with no `args`. The same `command` and `args` work in every client
+below.
+
+## Kiro
+
+Add to `.kiro/settings/mcp.json` in the workspace, or `~/.kiro/settings/mcp.json`
+for every workspace. Same JSON as the Cursor example above, with `op` as the
+command or the Keychain / SecretStore launcher script as the command.
 
 ## Cline
 
@@ -69,20 +89,17 @@ See [Cline MCP documentation](https://docs.cline.bot/mcp-servers/configuring-mcp
 
 ## Claude Code
 
-Add to `~/.claude/claude_desktop_config.json`.
+Register the server from a terminal with `op run` as the command:
 
-See [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
-
-```json
-{
-  "mcpServers": {
-    "demisto-sdk": {
-      "command": "/path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python",
-      "args": ["-m", "mcp_demisto_sdk"]
-    }
-  }
-}
+```bash
+claude mcp add demisto-sdk -e DEMISTO_SDK_BIN=/absolute/path/to/demisto-sdk \
+  -- op run --env-file=/path/to/cortex-xsiam-sdk-mcp-tools/.env.op \
+  -- /path/to/cortex-xsiam-sdk-mcp-tools/.venv/bin/python -m mcp_demisto_sdk
 ```
+
+See [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp). Claude
+Desktop reads `claude_desktop_config.json` and takes the same JSON as the Cursor
+example above.
 
 ## Amazon Q Developer
 
@@ -142,4 +159,4 @@ demisto-sdk --version
 
 ### Environment variables not set
 
-Verify credentials are available to the MCP server process. Some clients may not inherit shell environment variables — check your client's documentation for passing environment variables to MCP servers.
+Desktop clients do not inherit shell environment variables. Start the server through `op run` or a credential-store wrapper as above, do not copy the key into the client's configuration.
