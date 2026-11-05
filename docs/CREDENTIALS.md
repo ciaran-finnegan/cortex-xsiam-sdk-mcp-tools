@@ -33,7 +33,7 @@ and nothing else sees it.
 
 ```mermaid
 flowchart LR
-  Client["MCP client<br/>Claude, Kiro, Codex, Cursor"] -->|starts| Launcher["Launcher<br/>wrapper script or op run"]
+  Client["MCP client<br/>Kiro, Claude, Codex, OpenCode, Cursor"] -->|starts| Launcher["Launcher<br/>wrapper script or op run"]
   Launcher -->|reads| Store["Keychain, SecretStore<br/>or secrets manager"]
   Store -.->|Allow, Touch ID, password| Person["Person"]
   Launcher -->|key in environment| Server["demisto-sdk MCP server"]
